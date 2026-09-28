@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  detector:
+    name: Detector (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r detector/requirements.txt
+      - name: Guard against committed secrets
+        run: |
+          if git grep -nIE '(sk-[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)' -- . ':!detector/tests'; then
+            echo "::error::A credential-shaped string is committed. Remove it before merging."
+            exit 1
+          fi
+      - name: Unit tests
+        run: python -m unittest discover -s detector/tests -t . -p 'test_*.py'
+      - name: Offline preview must work without credentials
+        run: |
+          python scripts/dev_preview.py --write-only --data /tmp/drool-ci
+          test -s /tmp/drool-ci/public/state.json
+          python scripts/check_public_projection.py /tmp/drool-ci/public/state.json
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+      - name: Unit tests
+        working-directory: web
+        run: node --test src/*.test.js
+      - name: Build
+        working-directory: web
+        run: npm run build
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ai-drool-detector:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Container serves the offline preview
+        run: |
+          docker run -d --name drool-ci -p 4191:4191 ai-drool-detector:ci preview
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4191/api/state -o /tmp/state.json; then break; fi
+            sleep 1
+          done
+          test -s /tmp/state.json
+          python - <<'PY'
+          import json
+          state = json.load(open('/tmp/state.json'))
+          assert state['accounts'], 'container preview served no accounts'
+          print('container preview served', len(state['accounts']), 'accounts')
+          PY
+          curl -fsS -o /dev/null http://127.0.0.1:4191/
+          docker logs drool-ci | tail -5
+          docker rm -f drool-ci
+      - name: The web image must not contain a credential
+        run: |
+          docker run --rm --entrypoint sh ai-drool-detector:ci -c \
+            'test ! -e /etc/drool-detector/drool-detector.env && echo "no credential file baked in"'
