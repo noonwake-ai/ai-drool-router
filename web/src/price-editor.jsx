@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import React, {useEffect, useRef, useState} from 'react';
 import {Clock3, LoaderCircle, Plus, Save, Trash2, X} from 'lucide-react';
 import {PRICE_TIMEZONE, priceConfig, removePeriod, splitPeriod, timeMinute} from './price-config.js';

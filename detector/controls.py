@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """INPUT: monitor-only pause decisions. OUTPUT: atomic control state, never upstream writes."""
 import argparse
 import fcntl

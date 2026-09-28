@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Slot schedule derived from config: a regular cadence plus a quieter night window.
 
 Defaults to Beijing time, a 45-minute cadence, and 90 minutes between 04:00 and

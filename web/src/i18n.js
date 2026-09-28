@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import React,{createContext,useCallback,useContext,useEffect,useMemo,useState} from 'react';
 import {LANGUAGES,detectLanguage,setActiveLanguage,translate} from './i18n-core.js';
 

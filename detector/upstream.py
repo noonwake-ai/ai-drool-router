@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Upstream protocol adapters plus the Sub2API admin client. POS: worker-only."""
 import json
 import re

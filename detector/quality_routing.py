@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Definite candy verdicts and persisted circuits; retain a reserve per platform."""
 import hashlib
 import json

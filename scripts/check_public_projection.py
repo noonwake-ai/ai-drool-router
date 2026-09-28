@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
 """Fail if a public state projection would leak a credential-shaped value.
 
 Used by CI and safe to run by hand against a live `data/public/state.json`

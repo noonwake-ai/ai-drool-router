@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Token-only, 30-day ledger. Amounts are Sub2API base-price estimates, not invoices."""
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import json

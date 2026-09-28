@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """INPUT: read-only public projection. OUTPUT: static dashboard and sandboxed HTML. POS: credential-free HTTP service."""
 import argparse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer

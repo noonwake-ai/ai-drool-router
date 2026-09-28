@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import {priceConfig} from './price-config.js';
 import {tr} from './i18n-core.js';
 import {pauseUrl, priceUrl} from './endpoints.js';

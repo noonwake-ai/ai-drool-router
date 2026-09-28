@@ -16,7 +16,7 @@
 </p>
 
 <p>
-  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge">
+  <img alt="License" src="https://img.shields.io/badge/License-LGPL--3.0-blue.svg?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-green.svg?style=for-the-badge&logo=python&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-19-58c4dc.svg?style=for-the-badge&logo=react&logoColor=white">
   <img alt="Sub2API" src="https://img.shields.io/badge/Sub2API-required-d5b769.svg?style=for-the-badge">
@@ -129,29 +129,26 @@ Sub2API as **the one and only account and scheduling authority**. Put differentl
 One full loop looks like this:
 
 ```
-                     (1) read accounts, groups, rates
-                    ┌────────────────────────────┐
-                    │   Sub2API (your gateway)    │
-                    │   accounts · groups ·       │
-                    │   priority · rate multiplier│
-                    └──────┬──────────────▲────────┘
-                           │              │
-                     (2) get creds   (5) write priority back
-                           │              │
-                           ▼              │
-   ┌───────────────────────────────────────────────────────┐
-   │  Drool Detector & Router                               │
-   │                                                        │
-   │  (3) call upstream directly with the account's own key │
-   │      so the answer is the real one, not a gateway-     │
-   │      routed (possibly diluted) copy                     │
-   │                                                        │
-   │  (4) grade the candy puzzle + render the artwork,       │
-   │      then weight the four factors into one score         │
-   └───────────────────────┬───────────────────────────────┘
-                           │
-                           ▼
-                   public board (read-only, bilingual)
+   (1) read accounts, groups, rates
+   ┌──────────────────────────────────────┐
+   │ Sub2API (your gateway)               │
+   │ accounts · groups · priority · rates │
+   └────────┬───────────────────────────▲─┘
+            │                           │
+            (2) get creds               (5) write priority
+            │                           │
+            ▼                           │
+   ┌──────────────────────────────────────────────────────────────┐
+   │ Drool Detector & Router                                      │
+   │                                                              │
+   │ (3) call upstream with that account own key, bypassing the   │
+   │     group gateway, so the answer is the real one             │
+   │                                                              │
+   │ (4) grade the candy puzzle + render the artwork into a score │
+   └──────────────────────────────────────────────────────────────┘
+            │
+            ▼
+            public board (read-only, bilingual)
 ```
 
 Exactly what it needs from Sub2API, and what breaks without it:
@@ -245,25 +242,26 @@ can override them.
 ## How it works
 
 ```
-                    ┌──────────────────────────────┐
-                    │   Sub2API (your gateway)      │
-                    │   accounts · groups · priority │
-                    └───────────┬──────────────────┘
-                                │ admin API (read + one narrow write)
-                                ▼
+                       ┌──────────────────────────────────────┐
+                       │ Sub2API (your gateway)               │
+                       │ accounts · groups · priority · rates │
+                       └──────────────────────────────────────┘
+                                   │ admin API (read + one narrow write)
+                                   ▼
    ┌────────────────────────────────────────────────────┐
-   │  AI Drool Detector worker                           │
-   │  1. Pull accounts, pick the models to probe          │
-   │  2. Call upstream directly with that account's creds │
-   │  3. Run the candy and SVG tasks; record the metrics  │
-   │  4. Score, then write call priority (optional)       │
-   └───────────┬────────────────────────┬───────────────┘
-               │ public projection      │ narrow write
-               ▼                        ▼
-   ┌────────────────────┐    ┌──────────────────────┐
-   │  Public dashboard   │    │  Sub2API call priority│
-   │  bilingual · no creds│    │  circuits / recovery  │
-   └────────────────────┘    └──────────────────────┘
+   │ Drool Detector & Router worker                     │
+   │ 1. pull accounts, pick the models to probe         │
+   │ 2. call upstream with the account own credentials  │
+   │ 3. run the candy puzzle + SVG task, record metrics │
+   │ 4. score, then write call priority back (optional) │
+   └─────────────┬──────────────────────────────┬───────┘
+                 │                              │
+                 public projection              narrow write
+                 ▼                              ▼
+   ┌───────────────────────────┐    ┌───────────────────────┐
+   │ public board (read-only)  │    │ Sub2API call priority │
+   │ bilingual, no credentials │    │ circuits / recovery   │
+   └───────────────────────────┘    └───────────────────────┘
 ```
 
 Three processes, none sharing credentials:
@@ -575,4 +573,18 @@ Add tests with any new behaviour. For changes touching Sub2API writes, describe 
 
 ## License
 
-[MIT](LICENSE) © NoonWake.AI
+**[GNU Lesser General Public License v3.0](LICENSE)** (LGPL-3.0) © NoonWake.AI
+
+In plain words:
+
+- **Use it, run it commercially, modify it — all free.** You do not have to open
+  source your own application code.
+- But if you **modify this project itself** and then distribute it (including
+  shipping an image others can use), the parts you changed must be released under
+  LGPL-3.0 as well.
+- Using it as a component inside your own system does not make your code LGPL.
+
+LGPL-3.0 incorporates GPL-3.0 by reference, so the full GPL-3.0 text ships with
+the repository too: [COPYING](COPYING).
+
+> Short version: **take it and use it freely, but do not lock up a modified version and sell it.**

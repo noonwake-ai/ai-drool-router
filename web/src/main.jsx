@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import React, {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Activity, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, CheckCircle2, ChevronDown, Clock3, Code2, Droplets, Expand, ExternalLink, FileText, Gauge, Languages, LoaderCircle, Palette, Pause, Play, RefreshCw, Search, ShieldCheck, TriangleAlert, X, XCircle} from 'lucide-react';

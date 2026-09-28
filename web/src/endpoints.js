@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 // Every backend path is resolved against the app base so the same bundle works
 // behind a reverse proxy at "/" and as a static snapshot served from a
 // subdirectory (the GitHub Pages demo).

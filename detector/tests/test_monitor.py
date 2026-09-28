@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Offline contract tests. Never load a real key or contact a provider."""
 import json
 from pathlib import Path

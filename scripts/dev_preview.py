@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
 """Serve the dashboard with synthetic data so the UI can be reviewed offline.
 
 This never contacts Sub2API and never reads a credential. It writes a small

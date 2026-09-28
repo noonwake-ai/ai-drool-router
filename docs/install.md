@@ -5,14 +5,14 @@
 > 如果你是人，把下面这句话复制给你手边的 AI（Codex、Claude Code、Cursor、Windsurf 都行）：
 >
 > ```
-> 帮我部署 AI 流口水检测：https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.md
+> 帮我部署 流口水降智检测与智能调度：https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.md
 > ```
 
 ---
 
 ## 你的任务
 
-把 AI 流口水检测部署到用户的机器上，并**验证它真的产生了检测结果**。
+把 流口水降智检测与智能调度部署到用户的机器上，并**验证它真的产生了检测结果**。
 
 这不是一个"跑完命令就算完"的任务。没有看到真实的检测记录，就不算装好。
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
 """One complete probe round, end to end, inside an isolated sandbox.
 
 Two throwaway servers are started: a Sub2API-shaped admin API on plain HTTP
@@ -324,7 +327,7 @@ def mint_certificate(directory):
 
 def write_config(sandbox, gateway_url, ca_bundle, data_dir):
     config = {
-        'title': 'AI 流口水检测',
+        'title': '流口水降智检测与智能调度',
         'base_url': gateway_url,
         'data_dir': str(data_dir),
         'web': {'host': '127.0.0.1', 'port': 4191, 'public_controls': False},

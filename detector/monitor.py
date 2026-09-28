@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Account inventory, adaptive timer, and rolling public results. POS: isolated worker."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor

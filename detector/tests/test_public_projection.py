@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """The public projection checker must catch real leaks and not cry wolf.
 
 The negative fixtures here are the regression lock for
@@ -28,7 +31,7 @@ CHECKER = load_checker()
 def baseline():
     """A minimal projection shaped like the real one."""
     return {
-        'title': 'AI 流口水检测',
+        'title': '流口水降智检测与智能调度',
         'accounts': [
             {'id': 'abcdef123456', 'name': 'relay-alpha', 'type': 'apikey',
              'platform': 'openai', 'model': 'gpt-6-astra', 'effort': 'medium',

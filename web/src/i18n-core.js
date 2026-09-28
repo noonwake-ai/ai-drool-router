@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 
 export const LANGUAGES=[{id:'zh',short:'中',label:'简体中文'},{id:'en',short:'EN',label:'English'}];
 const STORAGE_KEY='drool-detector-language';
@@ -200,7 +203,7 @@ const ZH={
   'warning.reserve.none':'没有符合保底条件的评测账号','warning.reserve.failed':'保底账号恢复调用失败',
   'warning.reserve.changed':'保底账号状态发生变化',
   'warning.platform':'{platform} 调度同步需要核查：{reason}','warning.generic':'调度同步需要核查：{reason}',
-  'footer.by':'由 NoonWake 维护 · MIT 许可','footer.refresh':'每 30 秒刷新',
+  'footer.by':'由 NoonWake 维护 · LGPL-3.0 许可','footer.refresh':'每 30 秒刷新',
   'footer.retention':'画作 24 小时 / 成本 30 天',
 };
 
@@ -398,7 +401,7 @@ const EN={
   'warning.reserve.changed':'the reserve account changed state',
   'warning.platform':'{platform} routing sync needs attention: {reason}',
   'warning.generic':'Routing sync needs attention: {reason}',
-  'footer.by':'maintained by NoonWake · MIT licensed','footer.refresh':'refreshes every 30s',
+  'footer.by':'maintained by NoonWake · LGPL-3.0 licensed','footer.refresh':'refreshes every 30s',
   'footer.retention':'artwork 24h / cost 30d',
 };
 

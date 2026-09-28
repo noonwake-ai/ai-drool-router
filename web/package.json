@@ -1,6 +1,7 @@
 {
   "name": "drool-detector-web",
   "private": true,
+  "license": "LGPL-3.0-or-later",
   "version": "1.0.0",
   "type": "module",
   "scripts": {

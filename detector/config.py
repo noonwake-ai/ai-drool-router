@@ -1,4 +1,7 @@
-"""Central configuration for AI Drool Detector.
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+"""Central configuration for Drool Detector & Router.
 
 Precedence: environment variables > config file > built-in defaults.
 The config file path comes from ``DROOL_CONFIG`` and defaults to ``./config.json``.

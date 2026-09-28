@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """config.json is the only thing that can authorise a Sub2API mutation.
 
 These tests exist because a stock deployment must be able to score suppliers

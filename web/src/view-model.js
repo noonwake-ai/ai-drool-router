@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import {tr} from './i18n-core.js';
 
 export const PAGE_SIZE = 100;

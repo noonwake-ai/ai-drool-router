@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Fixed benchmark contract: prompts, per-platform models, and reasoning effort.
 
 Everything a deployer usually wants to change lives in ``config.json``. The
@@ -5,7 +8,7 @@ prompts themselves are intentionally fixed so results stay comparable over time.
 """
 from . import config
 
-TITLE = config.get('title') or 'AI 流口水检测'
+TITLE = config.get('title') or '流口水降智检测与智能调度'
 SUBTITLE = config.get('subtitle') or '你的 AI 现在还在流口水吗？'
 
 # Platform -> {"model", "effort", "label"}. Only enabled platforms are benchmarked.

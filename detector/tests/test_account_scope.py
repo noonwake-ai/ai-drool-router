@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Scope rules: deployer-configured groups narrow the set, name keywords always win."""
 import unittest
 from unittest.mock import Mock, patch

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Refresh only changed rate-driven priorities; never start model evaluations."""
 import argparse
 import json

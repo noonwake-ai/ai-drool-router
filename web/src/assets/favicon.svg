@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AI Drool Detector">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Drool Detector & Router">
   <rect width="64" height="64" rx="14" fill="#1b1b1e"/>
   <path d="M32 12c7.2 8.6 13 16 13 23.4C45 43.4 39.2 49 32 49s-13-5.6-13-13.6C19 28 24.8 20.6 32 12z"
         fill="none" stroke="#d5b769" stroke-width="3.6" stroke-linejoin="round"/>

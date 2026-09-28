@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Any supplier reachable over a supported wire protocol must work unmodified.
 
 This is what makes "supports any model" true rather than a marketing claim: a

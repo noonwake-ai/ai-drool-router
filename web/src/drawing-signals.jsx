@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import React from 'react';
 import {Code2} from 'lucide-react';
 import {tr} from './i18n-core.js';

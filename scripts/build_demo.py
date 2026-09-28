@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
 """Build the static online demo published to GitHub Pages.
 
 The demo is a real build of the dashboard plus a fixed dataset written by

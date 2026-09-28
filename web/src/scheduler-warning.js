@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import {tr} from './i18n-core.js';
 
 const NO_RESERVE = new Set(['NO_ELIGIBLE_GPT_RESERVE','NO_ELIGIBLE_PLATFORM_RESERVE']);

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Bounded observations of visible output; never a quality verdict or routing input."""
 from html.parser import HTMLParser
 import re

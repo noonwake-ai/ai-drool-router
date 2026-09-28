@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Question contract and two-stage confirmation. All responses below are offline fixtures."""
 import json
 import re

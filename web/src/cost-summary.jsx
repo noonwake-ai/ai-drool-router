@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 NoonWake.AI
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 import React from 'react';
 import {ChevronDown,CircleDollarSign} from 'lucide-react';
 import {costRows,formatCost} from './cost-view.js';

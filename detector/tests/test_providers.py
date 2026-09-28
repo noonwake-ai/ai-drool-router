@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Offline provider and pause contracts. Never load real credentials or call upstreams."""
 import json
 from pathlib import Path

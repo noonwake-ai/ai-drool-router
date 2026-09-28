@@ -1,5 +1,5 @@
 [Unit]
-Description=AI Drool Detector supplier rate refresh and priority recompute
+Description=Drool Detector & Router supplier rate refresh and priority recompute
 After=network-online.target
 Wants=network-online.target
 

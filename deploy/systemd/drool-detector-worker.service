@@ -1,5 +1,5 @@
 [Unit]
-Description=AI Drool Detector scheduled probes (Sub2API-backed)
+Description=Drool Detector & Router scheduled probes (Sub2API-backed)
 After=network-online.target
 Wants=network-online.target
 

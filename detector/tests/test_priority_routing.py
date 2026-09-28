@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Offline priority scope, evidence, persistence and narrow-write contracts."""
 import copy
 import json

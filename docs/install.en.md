@@ -6,14 +6,14 @@
 > (Codex, Claude Code, Cursor, Windsurf — any of them will do):
 >
 > ```
-> Deploy AI Drool Detector for me: https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.en.md
+> Deploy Drool Detector & Router for me: https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.en.md
 > ```
 
 ---
 
 ## Your task
 
-Deploy AI Drool Detector on the user's machine and **verify it actually produced
+Deploy Drool Detector & Router on the user's machine and **verify it actually produced
 probe results**. This is not a "commands ran, therefore done" task. Until there
 is a real probe record on disk, it is not installed.
 

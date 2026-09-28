@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Original candy probe and closed-answer grading for current and historical runs."""
 from copy import deepcopy
 from fractions import Fraction

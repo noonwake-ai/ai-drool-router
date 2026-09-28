@@ -1,4 +1,7 @@
 #!/bin/sh
+
+# SPDX-FileCopyrightText: 2026 NoonWake.AI
+# SPDX-License-Identifier: LGPL-3.0-or-later
 # Small dispatch layer so one image can act as the web process, the worker, the
 # metadata sync, or the rate tick. Anything else is executed verbatim.
 set -eu
