@@ -1,0 +1,64 @@
+name: Demo
+
+# Publishes the static online demo to GitHub Pages. The demo is a real build of
+# the dashboard plus synthetic fixtures: no gateway, no credentials, and every
+# control is disabled by the page itself.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'detector/**'
+      - 'scripts/build_demo.py'
+      - 'scripts/dev_preview.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+      - name: Build the demo
+        run: python3 scripts/build_demo.py
+      - name: Refuse to publish anything that looks like a credential
+        run: |
+          if grep -rIlE '(sk-[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)' demo/; then
+            echo "::error::The demo bundle contains a credential-shaped string."
+            exit 1
+          fi
+          python3 scripts/check_public_projection.py demo/api/state
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

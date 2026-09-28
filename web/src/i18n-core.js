@@ -18,6 +18,8 @@ const ZH={
   'app.loading':'正在读取检测数据',
   'app.reconnect':'重新连接',
   'app.noindex':'公开看板 · 不含任何凭据',
+  'demo.banner':'这是一个静态演示快照：数据由本地生成，没有连接任何真实网关，也不含任何凭据。按钮在你自己的部署里才可用。',
+  'demo.link':'查看部署方法',
 
   'status.pass':'通过','status.fail':'答错','status.error':'请求失败','status.quota':'限额跳过',
   'status.running':'检测中','status.pending':'排队中','status.paused':'已暂停',
@@ -214,6 +216,8 @@ const EN={
   'app.refreshTitle':'Refresh page data only; never starts a benchmark',
   'app.loading':'Loading monitor data','app.reconnect':'Reconnect',
   'app.noindex':'public board · contains no credentials',
+  'demo.banner':'This is a static demo snapshot: the data is generated locally, no real gateway is connected, and no credentials are involved. The controls only work in your own deployment.',
+  'demo.link':'See how to deploy',
 
   'status.pass':'Passed','status.fail':'Wrong answer','status.error':'Request failed','status.quota':'Quota skipped',
   'status.running':'Running','status.pending':'Queued','status.paused':'Paused',

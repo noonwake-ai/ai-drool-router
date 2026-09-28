@@ -1,5 +1,6 @@
 import {priceConfig} from './price-config.js';
 import {tr} from './i18n-core.js';
+import {pauseUrl, priceUrl} from './endpoints.js';
 
 export const controlLabel = paused => tr(paused ? 'control.resume' : 'control.pause');
 export const controlMessage = paused => tr(paused ? 'toast.paused' : 'toast.resumed');
@@ -8,7 +9,7 @@ export async function setMonitorPaused(account, fetcher = fetch) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const response = await fetcher(`/api/accounts/${account.id}/pause`, {
+    const response = await fetcher(pauseUrl(account.id), {
       method: 'POST', headers: {'Content-Type': 'application/json'}, signal: controller.signal,
       body: JSON.stringify({paused: !account.paused, expected_paused: Boolean(account.paused)}),
     });
@@ -50,7 +51,7 @@ export async function setSupplierPrice(account,value,fetcher=fetch) {
   const config=priceConfig(value && typeof value==='object'?value:{mode:'fixed',multiplier:value});
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try {
-    const response=await fetcher(`/api/accounts/${account.id}/price`,{method:'POST',headers:{'Content-Type':'application/json'},
+    const response=await fetcher(priceUrl(account.id),{method:'POST',headers:{'Content-Type':'application/json'},
       signal:controller.signal,body:JSON.stringify({config,expected_revision:account.price?.revision??'none'})});
     if(!response.ok)throw Error(response.status===409?tr('error.priceChanged'):tr('error.priceNotSaved'));
     const result=await response.json();

@@ -4,6 +4,7 @@ import {Activity, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, CheckC
 import {accountCategory, accountPage, answerText, candyAnswers, CATEGORIES, drawingPreview, latest, logicStats, nextSort, questionResult, responseExcerpt, resultLabel, showCandyMeme, SORT_OPTIONS, stageLabel} from './view-model.js';
 import {controlLabel, controlMessage, mergeMonitorState, setMonitorPaused, setSupplierPrice} from './control-client.js';
 import {readRun} from './run-client.js';
+import {artifactUrl, isStaticDemo, stateUrl} from './endpoints.js';
 import {LANGUAGES, LanguageProvider, tr, useI18n} from './i18n.js';
 import droolingStamp from './assets/drooling-stamp.svg';
 import './style.css';
@@ -67,7 +68,7 @@ function TestRow({kind,rows,selected,onSelect}) {
 }
 
 function ArtFrame({id,large=false,title}) {
-  return <div className={large?'large-frame':'frame-window'}><iframe title={title||tr('art.frame')} src={`/artifacts/${id}.html`} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="lazy" tabIndex={large?0:-1}/></div>;
+  return <div className={large?'large-frame':'frame-window'}><iframe title={title||tr('art.frame')} src={artifactUrl(id)} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="lazy" tabIndex={large?0:-1}/></div>;
 }
 
 function CandyPreview({row,onDetail,onDrawing}) {
@@ -188,7 +189,7 @@ function App() {
   const controlRequests=useRef(new Set()),toastSerial=useRef(0);
   const closeToast=useCallback(()=>setToast(null),[]);
   const openDetail=useCallback((id,tab)=>setSelection({id,tab}),[]);
-  const refresh=useCallback(async()=>{if(pending.current)return;const ctl=new AbortController();pending.current=ctl;setLoading(true);try{const r=await fetch('/api/state',{signal:ctl.signal,cache:'no-store'});if(!r.ok)throw Error(tr('error.unavailable'));const result=await r.json();if(mounted.current){setData(current=>mergeMonitorState(current,result));setError('');}}catch(e){if(mounted.current&&e.name!=='AbortError')setError(tr('error.stale'));}finally{pending.current=null;if(mounted.current)setLoading(false);}},[]);
+  const refresh=useCallback(async()=>{if(pending.current)return;const ctl=new AbortController();pending.current=ctl;setLoading(true);try{const r=await fetch(stateUrl(),{signal:ctl.signal,cache:'no-store'});if(!r.ok)throw Error(tr('error.unavailable'));const result=await r.json();if(mounted.current){setData(current=>mergeMonitorState(current,result));setError('');}}catch(e){if(mounted.current&&e.name!=='AbortError')setError(tr('error.stale'));}finally{pending.current=null;if(mounted.current)setLoading(false);}},[]);
   useEffect(()=>{mounted.current=true;refresh();const a=setInterval(()=>{if(!document.hidden)refresh();},30000);const b=setInterval(()=>setTick(Date.now()),1000);return()=>{mounted.current=false;clearInterval(a);clearInterval(b);pending.current?.abort();};},[refresh]);
   const control=useCallback(async account=>{
     if(controlRequests.current.has(account.id))return;
@@ -207,6 +208,7 @@ function App() {
     } catch(error) {if(mounted.current){setToast({id:++toastSerial.current,kind:'error',message:error.message});refresh();}}
   },[refresh]);
   if(!data)return <main className="boot"><Droplets size={36}/><h1>{FALLBACK_TITLE}</h1>{error?<><p>{error}</p><button className="command" onClick={refresh}><RefreshCw size={16}/>{tr('app.reconnect')}</button></>:<p><LoaderCircle size={17} className="spin"/>{tr('app.loading')}</p>}</main>;
+  const controlsEnabled=Boolean(data.controls_enabled)&&!isStaticDemo();
   const all=data.accounts.flatMap(a=>a.history.candy),stats=logicStats(all),rate=stats.samples?Math.round(stats.rate*1000)/10:null;
   const errorAccounts=data.accounts.filter(a=>a.circuit?.active||['candy','drawing'].some(k=>['fail','error'].includes(latest(a.history[k])?.status))).length;
   const elapsed=Math.max(0,Math.floor((data.next_run_at*1000-tick)/1000));
@@ -216,7 +218,7 @@ function App() {
   const changeCategory=id=>{setCategory(id);setPage(1);};
   const pager=<div className="pagination"><span>{tr('page.summary',{start:view.total?view.start+1:0,end:view.start+view.accounts.length,total:view.total})}</span><div><IconButton title={tr('page.prev')} disabled={view.page<=1} onClick={()=>setPage(view.page-1)}><ArrowLeft size={16}/></IconButton><span className="page-count">{tr('page.label',{page:view.page,pages:view.pages})}</span><IconButton title={tr('page.next')} disabled={view.page>=view.pages} onClick={()=>setPage(view.page+1)}><ArrowRight size={16}/></IconButton></div></div>;
   const platforms=[...new Set(data.accounts.map(a=>({openai:'GPT',anthropic:'Claude',gemini:'Gemini',grok:'Grok'}[a.platform]||a.platform)))].join(' · ');
-  return <><main className="dashboard"><header className="page-header"><div className="brand"><div className="brand-mark"><Droplets size={25}/></div><div><h1>{tr('app.title')||data.title||FALLBACK_TITLE}</h1><p>{platforms} <span>·</span> {tr('timeline.windowTitle',{hours:data.history_hours||24})}</p></div></div><div className="header-actions"><LanguageSwitch/><span className="update-time">{tr('app.updated',{time:date(data.generated_at,{hour:'2-digit',minute:'2-digit',second:'2-digit'})})}</span><IconButton title={tr('app.refreshTitle')} disabled={loading} onClick={refresh}><RefreshCw size={17} className={loading?'spin':''}/></IconButton></div></header>
+  return <><main className="dashboard">{isStaticDemo()&&<div className="demo-banner" role="note"><Droplets size={16}/><span>{tr('demo.banner')}</span><a href={REPO_URL + '#部署'} target="_blank" rel="noreferrer noopener">{tr('demo.link')}</a></div>}<header className="page-header"><div className="brand"><div className="brand-mark"><Droplets size={25}/></div><div><h1>{tr('app.title')||data.title||FALLBACK_TITLE}</h1><p>{platforms} <span>·</span> {tr('timeline.windowTitle',{hours:data.history_hours||24})}</p></div></div><div className="header-actions"><LanguageSwitch/><span className="update-time">{tr('app.updated',{time:date(data.generated_at,{hour:'2-digit',minute:'2-digit',second:'2-digit'})})}</span><IconButton title={tr('app.refreshTitle')} disabled={loading} onClick={refresh}><RefreshCw size={17} className={loading?'spin':''}/></IconButton></div></header>
     {(error||data.scheduler.sync_error||stale||schedulerWarning(data.scheduler,data.accounts))&&<div className="connection-warning"><TriangleAlert size={17}/>{error||data.scheduler.sync_error?.message||schedulerWarning(data.scheduler,data.accounts)||tr('error.warning')}</div>}
     <Hero/>
     <section className="overview"><div className="overview-main"><span className="overview-icon"><Activity size={24}/></span><div><h2>{tr('overview.heading')}</h2><p>{tr('overview.accounts',{n:data.accounts.length})} <span className="sep">/</span> {tr('overview.method')} <span className="sep">/</span> {tr('overview.rule')}</p><div className="overview-facts"><span><i className={errorAccounts?'dot fail':'dot pass'}/>{errorAccounts?tr('overview.bad',{n:errorAccounts}):tr('overview.ok')}</span><span title={tr('overview.cadenceTitle')}><Clock3 size={13}/>{tr('overview.cadence')}</span><button className="text-button" onClick={()=>setSelection({type:'prompts'})}><FileText size={13}/>{tr('overview.rules')}</button></div></div></div><div className="overview-score"><span>{tr('overview.rate')} <small>{tr('overview.window')}</small></span><strong>{rate==null?'--':rate+'%'}</strong><div className="countdown"><Clock3 size={14}/>{data.scheduler.running?tr('overview.running'):tr('overview.next',{time:`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`})}</div><div className="progress"><div style={{width:`${progress}%`}}/></div></div></section>
@@ -231,7 +233,7 @@ function App() {
         title={`${tr(option.descriptionKey)}${active?tr(descending?'sort.titleDesc':'sort.titleAsc'):tr('sort.titleDefault')}`}
         onClick={()=>{setSort(current=>nextSort(current,option.id));setPage(1);}}>{tr(option.labelKey)}<Icon size={14} aria-hidden="true"/></button>;
     })}</div>
-    <div id="account-results" role="tabpanel" aria-labelledby={`category-${category}`} className="account-list">{view.accounts.map(a=><Account key={a.id} account={a} controlsEnabled={data.controls_enabled} controlling={busyControls[a.id]} onControl={control} onPrice={savePrice} onDetail={openDetail}/>)}{!view.accounts.length&&<div className="no-results"><Search size={25}/><h2>{tr('empty.title')}</h2><button className="text-button" onClick={()=>{setQuery('');setFilter('all');changeCategory('all');}}>{tr('empty.clear')}</button></div>}</div><nav aria-label={tr('pagination.label')} className="bottom-pagination">{pager}</nav>
+    <div id="account-results" role="tabpanel" aria-labelledby={`category-${category}`} className="account-list">{view.accounts.map(a=><Account key={a.id} account={a} controlsEnabled={controlsEnabled} controlling={busyControls[a.id]} onControl={control} onPrice={savePrice} onDetail={openDetail}/>)}{!view.accounts.length&&<div className="no-results"><Search size={25}/><h2>{tr('empty.title')}</h2><button className="text-button" onClick={()=>{setQuery('');setFilter('all');changeCategory('all');}}>{tr('empty.clear')}</button></div>}</div><nav aria-label={tr('pagination.label')} className="bottom-pagination">{pager}</nav>
     <footer className="page-footer"><span>{tr('app.title')} <span className="sep">/</span> {tr('footer.by')}</span><span>{tr('footer.refresh')} <span className="sep">·</span> {tr('footer.retention')}</span></footer>
   </main>{selection&&<Modal key={selection.id||selection.type} selection={selection} onClose={()=>setSelection(null)} data={data}/>}{toast&&<Toast toast={toast} onClose={closeToast}/>}</>;
 }

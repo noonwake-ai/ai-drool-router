@@ -7,6 +7,7 @@
 <p>Scheduled probes · powered by Sub2API · answers straight from upstream</p>
 
 <p>
+  <a href="https://noonwake-ai.github.io/ai-drool-detector/"><strong>Live demo</strong></a> ·
   <a href="README.md">简体中文</a> ·
   <a href="#what-it-solves">What it solves</a> ·
   <a href="#five-minute-setup">Five-minute setup</a> ·
@@ -24,6 +25,8 @@
 </div>
 
 ![AI Drool Detector dashboard](docs/assets/dashboard-en.png)
+
+> 🚀 **[Open the live demo](https://noonwake-ai.github.io/ai-drool-detector/)** — nothing to install, no key, no cost. The data is a locally generated static snapshot and the controls are disabled there.
 
 ---
 
@@ -169,6 +172,24 @@ python3 scripts/dev_preview.py
 ```
 
 This preview uses locally generated fake data. It **never contacts your gateway, costs nothing, and needs no credentials**. Confirm the UI looks right before going further.
+
+### How the online demo is built
+
+The static snapshot in [demo/](demo/) **is a build artefact that is committed on purpose** — GitHub Pages publishes it directly.
+
+```bash
+python3 scripts/build_demo.py          # regenerate demo/
+python3 scripts/build_demo.py --check  # what CI runs: fail if it drifts from source
+```
+
+What it does:
+
+- builds the frontend with `DROOL_BASE=./` so every asset and endpoint path is relative and the bundle works from a subdirectory such as `/<repo>/`
+- writes the synthetic `dev_preview` dataset to `demo/api/state`, `demo/api/runs/<id>` and `demo/artifacts/<id>.html`
+- injects a `drool-demo` marker so the client shows the demo banner and disables every control
+- anchors all timestamps to a fixed instant, so the output is byte-reproducible and `--check` can actually detect drift
+
+**The demo contains no real data, no credentials and no gateway address.** CI re-runs the secret scan and the public-projection check before publishing.
 
 ### 5. Run it for real
 

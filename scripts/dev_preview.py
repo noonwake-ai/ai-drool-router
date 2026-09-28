@@ -11,6 +11,7 @@ which is what a deployer sees in production minus the live probes.
 """
 import argparse
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -22,10 +23,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from detector import server
 
 HOUR = 3600
+# Synthetic data is anchored to a fixed moment so the static demo builds
+# byte-for-byte reproducibly. Override with DROOL_DEMO_EPOCH for a live-looking
+# preview without breaking `build_demo.py --check`.
+ANCHOR = int(os.environ.get('DROOL_DEMO_EPOCH') or 1790640000)
 
 
 def _slot(offset_hours):
-    return int(time.time()) - offset_hours * HOUR
+    return ANCHOR - offset_hours * HOUR
 
 
 def _run_id(slot, salt):
@@ -117,19 +122,19 @@ def _metric(**overrides):
               'stability_rounds': 3, 'speed_rounds': 3, 'speed_samples': 6,
               'quality_pass': 3, 'quality_fail': 0, 'successful_requests': 6, 'failed_requests': 0,
               'availability': 100.0, 'speed_first_text_seconds': 12.4, 'speed_tokens_per_second': 48.2,
-              'status': 'applied', 'updated_at': time.time() - 600, 'multiplier': 0.4}
+              'status': 'applied', 'updated_at': ANCHOR - 600, 'multiplier': 0.4}
     metric.update(overrides)
     return metric
 
 
 def _price(multiplier, revision, age=600):
-    stamp = time.time() - age
+    stamp = ANCHOR - age
     return {'multiplier': multiplier, 'mode': 'fixed', 'updated_at': stamp,
             'evaluated_at': stamp, 'revision': revision * 64}
 
 
 def accounts():
-    now = time.time()
+    now = ANCHOR
     return [
         {'id': 'aaa111bbb222', 'name': 'relay-alpha', 'type': 'apikey', 'platform': 'openai',
          'model': 'gpt-6-astra', 'effort': 'medium', 'configured': True, 'paused': False, 'resume_at': 0,
@@ -178,7 +183,7 @@ def _models(platform, amount, unpriced=0):
 
 
 def state():
-    now = time.time()
+    now = ANCHOR
     return {
         'title': 'AI 流口水检测', 'model': 'gpt-6-astra', 'effort': 'medium', 'expected_answer': 21,
         'server_time': now, 'generated_at': now, 'next_run_at': now + 1260,
@@ -218,19 +223,17 @@ def state():
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Preview the dashboard with synthetic data.')
-    parser.add_argument('--host', default='127.0.0.1')
-    parser.add_argument('--port', type=int, default=4191)
-    parser.add_argument('--data', default='')
-    parser.add_argument('--write-only', action='store_true',
-                        help='write the synthetic state and exit; print its directory')
-    args = parser.parse_args()
-    root = Path(args.data) if args.data else Path(tempfile.mkdtemp(prefix='drool-preview-'))
-    public = root / 'public'
+def write_dataset(root, controls_enabled=True):
+    """Write one synthetic dataset (state + run records + artwork) under ``root``.
+
+    Shared by the live preview server and the static GitHub Pages demo so both
+    render from byte-identical fixtures.
+    """
+    public = Path(root) / 'public'
     public.mkdir(parents=True, exist_ok=True)
-    (root / 'controls').mkdir(parents=True, exist_ok=True)
+    (Path(root) / 'controls').mkdir(parents=True, exist_ok=True)
     snapshot = state()
+    snapshot['controls_enabled'] = bool(controls_enabled)
     (public / 'state.json').write_text(json.dumps(snapshot, ensure_ascii=False))
     written = 0
     for account in snapshot['accounts']:
@@ -243,6 +246,20 @@ def main():
                 written += 1
                 if detail['artifact_url']:
                     (public / (run['id'] + '.html')).write_text(ARTIFACT_TEMPLATE)
+    return snapshot, written
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Preview the dashboard with synthetic data.')
+    parser.add_argument('--host', default='127.0.0.1')
+    parser.add_argument('--port', type=int, default=4191)
+    parser.add_argument('--data', default='')
+    parser.add_argument('--write-only', action='store_true',
+                        help='write the synthetic state and exit; print its directory')
+    args = parser.parse_args()
+    root = Path(args.data) if args.data else Path(tempfile.mkdtemp(prefix='drool-preview-'))
+    public = root / 'public'
+    _snapshot, written = write_dataset(root, controls_enabled=True)
     if args.write_only:
         print(root)
         return

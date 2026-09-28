@@ -56,6 +56,8 @@ jobs:
       - name: Build
         working-directory: web
         run: npm run build
+      - name: The committed online demo must match the current source
+        run: python3 scripts/build_demo.py --check
 
   docker:
     name: Docker image

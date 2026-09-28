@@ -112,6 +112,14 @@
 .priority-speed{display:flex;flex-wrap:wrap;gap:6px 20px;margin:8px 0;color:var(--muted);font-size:13px}.priority-speed b{font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
 .reference-cost{font-size:13px;color:var(--muted)}.priority-speed small{flex-basis:100%;font-size:12px}
 
+/* Static-demo notice: a demo snapshot must never look like a live deployment. */
+.demo-banner{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:11px 14px;
+  border:1px solid #4d4126;border-radius:6px;background:#241f14;color:#d9cfa9;font-size:12px}
+.demo-banner svg{flex-shrink:0;color:#d5b769}
+.demo-banner span{flex:1;min-width:0;line-height:1.6}
+.demo-banner a{color:#f0d99a;text-decoration:underline;white-space:nowrap}
+@media(max-width:520px){.demo-banner{flex-wrap:wrap;font-size:11px}.demo-banner a{white-space:normal}}
+
 /* Marketing hero and language switch: first screen of the public board. */
 .hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:28px;
   padding:30px 32px;margin-bottom:18px;border:1px solid #3d3527;border-radius:8px;

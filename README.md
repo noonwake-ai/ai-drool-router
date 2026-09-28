@@ -7,6 +7,7 @@
 <p>定时探针 · 依托 Sub2API · 直连上游取真实答案</p>
 
 <p>
+  <a href="https://noonwake-ai.github.io/ai-drool-detector/"><strong>在线 Demo</strong></a> ·
   <a href="README.en.md">English</a> ·
   <a href="#它解决什么问题">它解决什么问题</a> ·
   <a href="#五分钟跑起来">五分钟跑起来</a> ·
@@ -24,6 +25,8 @@
 </div>
 
 ![AI 流口水检测看板](docs/assets/dashboard-zh.png)
+
+> 🚀 **[点这里直接打开在线 Demo](https://noonwake-ai.github.io/ai-drool-detector/)** —— 不用装任何东西、不用密钥、不花钱。数据是本地生成的静态快照，按钮在 Demo 里是禁用的。
 
 ---
 
@@ -173,6 +176,28 @@ python3 scripts/dev_preview.py
 ```
 
 这个预览用的是本地造的假数据，**不会连你的网关、不花一分钱、不需要任何密钥**。先确认页面长得对，再往下走。
+
+### 在线 Demo 是怎么来的
+
+[demo/](demo/) 目录里那份静态快照**是构建产物，但故意提交进仓库**——GitHub Pages 直接发布它。
+
+```bash
+python3 scripts/build_demo.py          # 重新生成 demo/
+python3 scripts/build_demo.py --check  # CI 用：和当前源码不一致就失败
+```
+
+它做了什么：
+
+- 用 `DROOL_BASE=./` 构建前端，所有资源与接口路径都是相对的，
+  所以放在 `/<仓库名>/` 这种子目录下也能正常打开
+- 把 `dev_preview` 的合成数据落成 `demo/api/state`、`demo/api/runs/<id>`、
+  `demo/artifacts/<id>.html`
+- 往页面注入一个 `drool-demo` 标记：客户端据此显示演示提示条，
+  并把所有控制按钮置为禁用
+- 数据锚定在一个固定时间戳，所以构建结果逐字节可复现，
+  CI 里 `--check` 才能真正判断"是否过期"
+
+**Demo 里没有任何真实数据、任何密钥、任何网关地址。** 发布前 CI 还会再跑一遍密钥扫描和公开投影检查。
 
 ### 5. 真实跑一轮
 

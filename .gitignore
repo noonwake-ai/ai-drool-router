@@ -20,6 +20,5 @@ __pycache__/
 .idea/
 .vscode/
 
-# CI workflow lives here once the pushing token has the `workflow` scope.
-# Publish it with: gh auth refresh -h github.com -s workflow
-#                  git add .github/workflows/ci.yml && git commit -m "工程：启用 CI" && git push
+# The static online demo under demo/ is committed on purpose: it is what GitHub
+# Pages publishes. Regenerate it with scripts/build_demo.py, never by hand.
