@@ -9,7 +9,10 @@ User=drool-worker
 Group=drool-detector
 WorkingDirectory=/opt/ai-drool-detector/current
 EnvironmentFile=/etc/ai-drool-detector/drool-detector.env
-ExecStart=/usr/bin/python3 -m detector.monitor --source timer --enable-quality-routing --enable-priority-routing
+# Whether the worker may write Sub2API is decided by config.json:
+# routing.write_priority and routing.write_callable. Both default to false,
+# so a stock deploy scores suppliers without touching your gateway.
+ExecStart=/usr/bin/python3 -m detector.monitor --source timer
 TimeoutStartSec=3300
 MemoryMax=512M
 CPUQuota=75%

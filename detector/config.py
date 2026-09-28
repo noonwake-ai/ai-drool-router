@@ -4,12 +4,46 @@ Precedence: environment variables > config file > built-in defaults.
 The config file path comes from ``DROOL_CONFIG`` and defaults to ``./config.json``.
 Everything platform specific lives here, so the engine stays provider agnostic.
 """
+import hashlib
 import json
 import os
 from copy import deepcopy
 from pathlib import Path
 
 ENV_PREFIX = 'DROOL_'
+
+# Wire protocols this project can speak. Anything else a supplier offers is
+# almost always reachable through `openai_chat`, which is the default for a
+# platform that does not declare one — that is what makes "any model" real
+# rather than a marketing claim.
+PROTOCOLS = ('openai_responses', 'openai_chat', 'anthropic_messages',
+             'gemini_generate', 'xai_responses')
+DEFAULT_PROTOCOL = 'openai_chat'
+# Platforms whose native protocol differs from the generic default. A deployer
+# can override any of these with an explicit `protocol` in config.json.
+IMPLIED_PROTOCOLS = {
+    'openai': 'openai_responses',
+    'anthropic': 'anthropic_messages',
+    'claude': 'anthropic_messages',
+    'gemini': 'gemini_generate',
+    'grok': 'xai_responses',
+}
+
+
+def protocol_for(platform):
+    """Resolve the wire protocol for a platform.
+
+    Explicit config wins; otherwise a known platform keeps its native protocol
+    and everything else falls back to OpenAI-compatible chat completions.
+    """
+    spec = platform_spec(platform)
+    declared = str(spec.get('protocol') or '').strip()
+    if declared:
+        if declared not in PROTOCOLS:
+            raise SystemExit('平台 %s 的 protocol 无效：%s（可选：%s）' %
+                             (platform, declared, ', '.join(PROTOCOLS)))
+        return declared
+    return IMPLIED_PROTOCOLS.get(platform, DEFAULT_PROTOCOL)
 
 DEFAULTS = {
     'title': 'AI 流口水检测',
@@ -29,6 +63,7 @@ DEFAULTS = {
         'openai': {
             'enabled': True,
             'label': 'GPT',
+            'protocol': 'openai_responses',
             'model': 'gpt-6-astra',
             'effort': 'medium',
             'group_ids': [],
@@ -38,6 +73,7 @@ DEFAULTS = {
         'anthropic': {
             'enabled': True,
             'label': 'Claude',
+            'protocol': 'anthropic_messages',
             'model': 'claude-opus-5-5',
             'effort': 'medium',
             'group_ids': [],
@@ -47,6 +83,7 @@ DEFAULTS = {
         'gemini': {
             'enabled': True,
             'label': 'Gemini',
+            'protocol': 'gemini_generate',
             'model': 'gemini-3.8-flash',
             'effort': 'high',
             'group_ids': [],
@@ -56,6 +93,7 @@ DEFAULTS = {
         'grok': {
             'enabled': True,
             'label': 'Grok',
+            'protocol': 'xai_responses',
             'model': 'grok-4.7',
             'effort': 'high',
             'group_ids': [],
@@ -81,6 +119,12 @@ DEFAULTS = {
         'stability_endpoint': '',
     },
     'retention': {'artifacts_hours': 24, 'cost_days': 30},
+    'privacy': {
+        # 'full'    - publish the gateway account name verbatim
+        # 'alias'   - publish a stable pseudonym such as "supplier-1a2b3c"
+        # 'masked'  - keep the first 2 and last 2 characters, mask the middle
+        'account_names': 'full',
+    },
     'identity_salt': 'ai-drool-detector',
 }
 
@@ -177,3 +221,72 @@ def data_dir():
 def evaluation_scope_ids(platform):
     spec = platform_spec(platform)
     return [int(value) for value in (spec.get('group_ids') or []) if str(value).lstrip('-').isdigit()]
+
+
+def write_enabled(kind):
+    """Whether a Sub2API mutation is authorised by config.
+
+    This is the single source of truth for write permission. Neither a CLI flag
+    nor a systemd unit may turn a write on that config has left off, so a stock
+    deployment can never mutate the gateway by accident.
+
+    ``kind`` is ``priority`` or ``callable``.
+    """
+    if kind not in ('priority', 'callable'):
+        raise ValueError('unknown write kind: %r' % kind)
+    return bool(config_bool('routing.write_' + kind))
+
+
+def max_attempts():
+    """Total attempts allowed per probe, including the first request.
+
+    Clamped to 1..3 so a typo cannot start an unbounded paid retry loop.
+    """
+    if 'max_attempts' not in (CONFIG.get('budgets') or {}):
+        return 3
+    try:
+        value = int(CONFIG['budgets']['max_attempts'])
+    except (TypeError, ValueError):
+        return 3
+    return max(1, min(3, value))
+
+
+def account_name_mode():
+    """How much of a gateway account name may appear in the public board."""
+    mode = str(CONFIG.get('privacy', {}).get('account_names') or 'full').strip().lower()
+    return mode if mode in ('full', 'alias', 'masked') else 'full'
+
+
+def public_account_name(account_id, name):
+    """Apply the configured account-name privacy mode.
+
+    Account names often identify the real upstream supplier, so a public
+    deployment may not want them verbatim. Aliasing stays stable across rounds
+    so history still lines up.
+    """
+    cleaned = str(name or '')
+    mode = account_name_mode()
+    if mode == 'alias':
+        digest = hashlib.sha256((config_salt() + '-name-' + str(account_id)).encode()).hexdigest()[:6]
+        return 'supplier-' + digest
+    if mode == 'masked':
+        if len(cleaned) <= 4:
+            return '*' * len(cleaned)
+        return cleaned[:2] + '*' * max(1, len(cleaned) - 4) + cleaned[-2:]
+    return cleaned
+
+
+def config_salt():
+    return str(CONFIG.get('identity_salt') or 'ai-drool-detector')
+
+
+def config_bool(path, default=False):
+    """Read a boolean config value, accepting only real booleans or 0/1 strings."""
+    value = get(path, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ('1', 'true', 'yes', 'on')
+    if isinstance(value, int):
+        return bool(value)
+    return bool(default)

@@ -10,7 +10,7 @@ import requests
 from urllib3.exceptions import ReadTimeoutError
 
 from . import config
-from .prompts import BENCHMARKS, INSTRUCTIONS, PROMPTS
+from .prompts import BENCHMARKS, INSTRUCTIONS, PROMPTS, benchmark_spec
 from .costs import normalize_usage
 
 MAX_OUTPUT_BYTES = 8_000_000
@@ -45,16 +45,26 @@ CLAUDE_HEADERS = {
 }
 
 
+PROTOCOL_LABELS = {
+    'openai_responses': 'openai-responses',
+    'openai_chat': 'openai-chat-completions',
+    'anthropic_messages': 'anthropic-messages-2023-06-01',
+    'gemini_generate': 'gemini-generateContent-v1beta',
+    'xai_responses': 'xai-responses',
+}
+
+
 def client_info(platform):
+    """Describe the client identity used for a platform, for the audit trail."""
     if platform == 'openai':
         return CLIENT_INFO
-    return {'transport': 'direct-http', 'protocol': {
-        'anthropic': 'anthropic-messages-2023-06-01',
-        'gemini': 'gemini-generateContent-v1beta',
-        'grok': 'xai-responses',
-    }.get(platform, 'unconfigured'),
-        **({'grok_protocol_version': GROK_VERSION} if platform == 'grok' else {}),
-        **({'claude_protocol_version': CLAUDE_VERSION} if platform == 'anthropic' else {})}
+    protocol = config.protocol_for(platform)
+    info = {'transport': 'direct-http', 'protocol': PROTOCOL_LABELS.get(protocol, protocol)}
+    if protocol == 'xai_responses':
+        info['grok_protocol_version'] = GROK_VERSION
+    if protocol == 'anthropic_messages':
+        info['claude_protocol_version'] = CLAUDE_VERSION
+    return info
 
 
 class ProbeError(Exception):
@@ -118,13 +128,37 @@ def secret_values(value):
 OAUTH_QUOTA_ERROR = 'OAUTH_QUOTA_EXHAUSTED'
 
 
+def _group_labels(account):
+    """Collect the group names a gateway actually exposed for this account.
+
+    Sub2API normally returns only numeric ``group_ids``. A deployment may enrich
+    the payload with ``group_names`` or a ``groups`` list of objects; if it does
+    not, name-based scoping cannot be evaluated and must not be guessed.
+    """
+    labels = []
+    for key in ('group_names', 'groups'):
+        value = account.get(key)
+        if not isinstance(value, list):
+            continue
+        for entry in value:
+            if isinstance(entry, str) and entry.strip():
+                labels.append(entry.strip().lower())
+            elif isinstance(entry, dict):
+                for field in ('name', 'label', 'title'):
+                    text = entry.get(field)
+                    if isinstance(text, str) and text.strip():
+                        labels.append(text.strip().lower())
+    return set(labels)
+
+
 def scope_state(account):
     """Return ``in``, ``out``, or ``unknown`` for one gateway account.
 
     ``group_ids`` / ``group_names`` in ``config.json`` narrow the benchmark set;
     leaving both empty benchmarks every account of that platform. ``exclude_names``
-    always wins. ``unknown`` means group scoping is configured but the gateway did
-    not return usable group metadata, so a caller must refuse to guess.
+    always wins. ``unknown`` means name scoping was configured but the gateway did
+    not expose group names, so the caller must refuse to guess rather than probe
+    an account the deployer did not intend.
     """
     platform = account.get('platform')
     spec = config.platform_spec(platform)
@@ -139,14 +173,23 @@ def scope_state(account):
     if not allowed_ids and not allowed_names:
         return 'in'
     groups = account.get('group_ids')
-    if not isinstance(groups, list):
+    if isinstance(groups, list):
+        for group_id in groups:
+            if type(group_id) is int and group_id in allowed_ids:
+                return 'in'
+    if not allowed_names:
+        return 'out' if isinstance(groups, list) else 'unknown'
+    labels = _group_labels(account)
+    if labels and labels & allowed_names:
+        return 'in'
+    if isinstance(groups, list) and groups and not labels:
+        # Numeric ids exist but no names were published; a name-based rule cannot
+        # be evaluated for this account. Say so instead of silently excluding or
+        # silently including it.
         return 'unknown'
-    for group_id in groups:
-        if type(group_id) is int and group_id in allowed_ids:
-            return 'in'
-        if isinstance(group_id, str) and group_id.strip().lower() in allowed_names:
-            return 'in'
-    return 'out'
+    if labels and not (labels & allowed_names):
+        return 'out'
+    return 'in' if not groups and not labels else 'unknown'
 
 
 def in_evaluation_scope(account):
@@ -483,122 +526,201 @@ def endpoint(base, suffix, version='v1'):
 
 
 def build_request(account, kind, *, prompt=None, instructions=None, request_id=None):
+    """Build (url, headers, payload) for one probe request.
+
+    Dispatch is by wire protocol rather than platform name, so any supplier that
+    speaks one of the supported protocols works without touching this file.
+    """
     prompt = PROMPTS[kind] if prompt is None else prompt
     instructions = INSTRUCTIONS[kind] if instructions is None else instructions
     request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
-    instructions = request_instructions(instructions,request_id)
+    instructions = request_instructions(instructions, request_id)
     creds = account.get('credentials') or {}
     extra = account.get('extra') or {}
     platform = account.get('platform', 'openai')
-    model = BENCHMARKS.get(platform, {}).get('model')
+    spec = benchmark_spec(platform)
+    model = spec.get('model')
     if not model:
         raise ProbeError('MODEL_NOT_CONFIGURED', '此平台尚未指定检测模型，本轮未调用')
-    effort = BENCHMARKS.get(platform, {}).get('effort') or 'medium'
+    effort = spec.get('effort') or 'medium'
+    protocol = spec.get('protocol') or config.protocol_for(platform)
+    # Sub2API records whether an OpenAI-compatible upstream speaks the Responses
+    # API. Honour that account flag so a chat-only relay still works.
+    if protocol == 'openai_responses' and extra.get('openai_responses_supported') is False:
+        protocol = 'openai_chat'
     mapped = (creds.get('model_mapping') or {}).get(model, model)
     if mapped != model:
         raise ProbeError('MODEL_MAPPING_MISMATCH', '此账户将指定模型映射为其他模型，本轮未调用')
     if platform != 'openai' and account.get('status') != 'active':
         raise ProbeError('ACCOUNT_INACTIVE', '此账户当前未启用，本轮未调用')
-    if platform != 'openai':
-        url,headers,payload = build_provider_request(account, kind, model, prompt=prompt, instructions=instructions)
-        return url,{**headers,**fresh_headers(request_id)},payload
-    payload = {'model': model, 'stream': True, 'store': False,
-               'instructions': instructions,
-               'input': [{'role':'user','content':[{'type':'input_text','text':prompt}]}],
-               'reasoning': {'effort':effort}}
-    headers = {'Content-Type':'application/json','Accept':'text/event-stream',
-               'User-Agent':f'codex-tui/{CODEX_VERSION} (Ubuntu 22.4.0; x86_64) xterm-256color',
-               'Originator':'codex-tui', 'Version':CODEX_VERSION}
-    if account.get('type') == 'oauth':
-        token = creds.get('access_token')
-        if not token:
-            raise ProbeError('MISSING_ACCESS_TOKEN', '账户没有可用的访问令牌')
-        url = 'https://chatgpt.com/backend-api/codex/responses'
-        headers['Authorization'] = 'Bearer ' + token
-        headers['OpenAI-Beta'] = 'responses=experimental'
-        headers['session_id'] = request_id
-        if creds.get('chatgpt_account_id'):
-            headers['ChatGPT-Account-Id'] = creds['chatgpt_account_id']
-    elif account.get('type') == 'apikey':
-        token = creds.get('api_key')
-        if not token:
-            raise ProbeError('MISSING_API_KEY', '账户没有可用的 API Key')
-        url = endpoint(creds.get('base_url') or 'https://api.openai.com', 'responses')
-        headers['Authorization'] = 'Bearer ' + token
-        if extra.get('openai_responses_supported') is False:
-            url = url.rsplit('/responses', 1)[0] + '/chat/completions'
-            payload = {'model':model, 'stream':True, 'reasoning_effort':effort,
-                       'messages':[{'role':'system','content':instructions}, {'role':'user','content':prompt}]}
-    else:
-        raise ProbeError('ACCOUNT_TYPE_UNSUPPORTED', '此账户类型尚不支持独立检测')
-    overrides = extra.get('header_overrides') or creds.get('header_overrides') or {}
-    if isinstance(overrides, dict):
-        for k, v in overrides.items():
-            if isinstance(v, str) and k.lower() in ('user-agent','originator','openai-beta') and '\n' not in v and '\r' not in v:
-                headers[k] = v
-    return url, {**headers,**fresh_headers(request_id)}, payload
-
-
-def request_instructions(instructions, request_id):
-    return f'独立请求标识：{request_id}。此标识不是题目，不要在回答中复述。请独立完成本次请求，不引用其他对话。\n'+instructions
-
-
-def fresh_headers(request_id):
-    return {'X-Client-Request-Id':request_id,'Cache-Control':'no-cache, no-store','Pragma':'no-cache'}
-
-
-def build_provider_request(account, kind, model, *, prompt=None, instructions=None):
-    prompt = PROMPTS[kind] if prompt is None else prompt
-    instructions = INSTRUCTIONS[kind] if instructions is None else instructions
-    creds = account.get('credentials') or {}
-    platform = account['platform']
-    effort = BENCHMARKS[platform]['effort']
     auth_type = account.get('type')
-    headers = {'Content-Type': 'application/json', 'Accept': 'text/event-stream'}
+    if protocol in ('openai_responses', 'xai_responses') and platform == 'openai' and auth_type == 'oauth':
+        url, headers, payload = _openai_oauth_request(
+            account, request_id, model, effort, prompt, instructions, extra, creds)
+    elif protocol == 'anthropic_messages':
+        url, headers, payload = _anthropic_request(
+            account, kind, model, effort, prompt, instructions, creds, extra)
+    elif protocol == 'gemini_generate':
+        url, headers, payload = _gemini_request(
+            account, model, effort, prompt, instructions, creds, extra)
+    elif protocol == 'xai_responses':
+        url, headers, payload = _xai_request(
+            account, model, effort, prompt, instructions, creds, extra)
+    elif protocol == 'openai_responses':
+        url, headers, payload = _openai_responses_request(
+            account, model, effort, prompt, instructions, creds, extra)
+    elif protocol == 'openai_chat':
+        url, headers, payload = _openai_chat_request(
+            account, model, effort, prompt, instructions, creds, extra)
+    else:
+        raise ProbeError('PROTOCOL_UNSUPPORTED', '此账户的协议尚不支持独立检测：' + str(protocol))
+    return url, {**headers, **fresh_headers(request_id)}, payload
+
+
+def _bearer_or_key(account, creds):
+    """Return the credential a supplier expects, honouring both auth styles."""
+    auth_type = account.get('type')
     token = creds.get('access_token' if auth_type == 'oauth' else 'api_key')
     if auth_type not in ('apikey', 'oauth') or not token:
         raise ProbeError('CREDENTIAL_UNAVAILABLE', '账户没有可用的请求凭据')
-    if platform == 'grok':
-        headers['Authorization'] = 'Bearer '+token
-        base = creds.get('base_url') or ('https://cli-chat-proxy.grok.com' if auth_type == 'oauth' else 'https://api.x.ai')
-        url = endpoint(base, 'responses')
-        if auth_type == 'oauth':
-            if urlsplit(url).hostname != 'cli-chat-proxy.grok.com':
-                raise ProbeError('UNSAFE_OAUTH_HOST', 'Grok OAuth 只允许已核实的官方网关')
-            headers.update({'X-XAI-Token-Auth': 'xai-grok-cli', 'x-grok-client-version': GROK_VERSION,
-                            'x-grok-client-identifier': 'grok-shell', 'X-Grok-Client-Mode': 'interactive',
-                            'User-Agent': 'xai-grok-workspace/'+GROK_VERSION})
-        return url, headers, {'model':model, 'stream':True, 'store':False,
-                             'instructions':instructions, 'input':[{'role':'user','content':prompt}],
-                             'reasoning':{'effort':effort}}
+    return auth_type, token
+
+
+def _apply_header_overrides(headers, account, creds, allowed):
+    overrides = (account.get('extra') or {}).get('header_overrides') or creds.get('header_overrides') or {}
+    if not isinstance(overrides, dict):
+        return headers
+    for key, value in overrides.items():
+        if not isinstance(value, str) or not value or '\n' in value or '\r' in value:
+            continue
+        if key.lower() in allowed:
+            headers[key] = value
+    return headers
+
+
+def _openai_oauth_request(account, request_id, model, effort, prompt, instructions, extra, creds):
+    token = creds.get('access_token')
+    if not token:
+        raise ProbeError('MISSING_ACCESS_TOKEN', '账户没有可用的访问令牌')
+    headers = {'Content-Type': 'application/json', 'Accept': 'text/event-stream',
+               'User-Agent': f'codex-tui/{CODEX_VERSION} (Ubuntu 22.4.0; x86_64) xterm-256color',
+               'Originator': 'codex-tui', 'Version': CODEX_VERSION,
+               'Authorization': 'Bearer ' + token,
+               'OpenAI-Beta': 'responses=experimental',
+               'session_id': request_id}
+    if creds.get('chatgpt_account_id'):
+        headers['ChatGPT-Account-Id'] = creds['chatgpt_account_id']
+    payload = {'model': model, 'stream': True, 'store': False, 'instructions': instructions,
+               'input': [{'role': 'user', 'content': [{'type': 'input_text', 'text': prompt}]}],
+               'reasoning': {'effort': effort}}
+    _apply_header_overrides(headers, account, creds, ('user-agent', 'originator', 'openai-beta'))
+    return 'https://chatgpt.com/backend-api/codex/responses', headers, payload
+
+
+def _openai_responses_request(account, model, effort, prompt, instructions, creds, extra):
+    _auth_type, token = _bearer_or_key(account, creds)
+    headers = {'Content-Type': 'application/json', 'Accept': 'text/event-stream',
+               'Authorization': 'Bearer ' + token}
+    url = endpoint(creds.get('base_url') or 'https://api.openai.com', 'responses')
+    payload = {'model': model, 'stream': True, 'store': False, 'instructions': instructions,
+               'input': [{'role': 'user', 'content': [{'type': 'input_text', 'text': prompt}]}],
+               'reasoning': {'effort': effort}}
+    _apply_header_overrides(headers, account, creds, ('user-agent', 'originator', 'openai-beta'))
+    return url, headers, payload
+
+
+def _openai_chat_request(account, model, effort, prompt, instructions, creds, extra):
+    """Generic OpenAI-compatible Chat Completions call.
+
+    This is the adapter that makes mainstream relays work unchanged: Moonshot,
+    DeepSeek, Qwen, Volcengine, SiliconFlow, OpenRouter and anything else that
+    exposes `/v1/chat/completions` against a base URL plus an API key.
+    """
+    _auth_type, token = _bearer_or_key(account, creds)
+    # Official OpenAI stays the default so a stock account works without a
+    # base_url, but any relay that sets one is used instead.
+    base = creds.get('base_url') or 'https://api.openai.com'
+    headers = {'Content-Type': 'application/json', 'Accept': 'text/event-stream',
+               'Authorization': 'Bearer ' + token}
+    payload = {'model': model, 'stream': True,
+               'messages': [{'role': 'system', 'content': instructions},
+                            {'role': 'user', 'content': prompt}]}
+    if effort and effort != 'default':
+        # Widely understood alias; suppliers that do not know it ignore it.
+        payload['reasoning_effort'] = effort
+    _apply_header_overrides(headers, account, creds, ('user-agent', 'originator', 'openai-beta'))
+    return endpoint(base, 'chat/completions'), headers, payload
+
+
+def _anthropic_request(account, kind, model, effort, prompt, instructions, creds, extra):
+    auth_type, token = _bearer_or_key(account, creds)
     if auth_type != 'apikey':
         raise ProbeError('ACCOUNT_TYPE_UNSUPPORTED', '此平台的 OAuth 请求协议尚未配置，本轮未调用')
-    if platform == 'anthropic':
-        headers.update(CLAUDE_HEADERS)
-        headers.update({'x-api-key':token, 'anthropic-version':'2023-06-01'})
-        if (account.get('extra') or {}).get('anthropic_apikey_auth_scheme') == 'authorization_bearer':
-            del headers['x-api-key']
-            headers['Authorization'] = 'Bearer '+token
-        metadata = {'device_id':uuid.uuid4().hex+uuid.uuid4().hex,
-                    'account_uuid':'', 'session_id':str(uuid.uuid4())}
-        return endpoint(creds.get('base_url') or 'https://api.anthropic.com', 'messages')+'?beta=true', headers, {
-            'model':model, 'stream':True, 'max_tokens':32768 if kind=='drawing' else 8192,
-            'output_config':{'effort':effort},
-            'metadata':{'user_id':json.dumps(metadata,separators=(',',':'))},
-            'system':[{'type':'text','text':CLAUDE_IDENTITY},
-                      {'type':'text','text':instructions}],
-            'messages':[{'role':'user', 'content':[{'type':'text','text':prompt}]}]}
-    if platform == 'gemini':
-        if not re.fullmatch(r'gemini-[a-zA-Z0-9._-]+', model):
-            raise ProbeError('MODEL_NOT_CONFIGURED', 'Gemini 模型配置无效')
-        headers['x-goog-api-key'] = token
-        url = endpoint(creds.get('base_url') or 'https://generativelanguage.googleapis.com',
-                       'models/'+model+':streamGenerateContent', version='v1beta')+'?alt=sse'
-        return url, headers, {'systemInstruction':{'parts':[{'text':instructions}]},
-                             'contents':[{'role':'user','parts':[{'text':prompt}]}],
-                             'generationConfig':{'maxOutputTokens':GEMINI_MAX_OUTPUT_TOKENS,
-                                                 'thinkingConfig':{'thinkingLevel':effort.upper()}}}
-    raise ProbeError('PLATFORM_UNSUPPORTED', '此平台尚未支持独立检测')
+    headers = {'Content-Type': 'application/json', 'Accept': 'text/event-stream'}
+    headers.update(CLAUDE_HEADERS)
+    headers.update({'x-api-key': token, 'anthropic-version': '2023-06-01'})
+    if (extra or {}).get('anthropic_apikey_auth_scheme') == 'authorization_bearer':
+        del headers['x-api-key']
+        headers['Authorization'] = 'Bearer ' + token
+    metadata = {'device_id': uuid.uuid4().hex + uuid.uuid4().hex,
+                'account_uuid': '', 'session_id': str(uuid.uuid4())}
+    payload = {'model': model, 'stream': True,
+               'max_tokens': 32768 if kind == 'drawing' else 8192,
+               'output_config': {'effort': effort},
+               'metadata': {'user_id': json.dumps(metadata, separators=(',', ':'))},
+               'system': [{'type': 'text', 'text': CLAUDE_IDENTITY},
+                          {'type': 'text', 'text': instructions}],
+               'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': prompt}]}]}
+    url = endpoint(creds.get('base_url') or 'https://api.anthropic.com', 'messages') + '?beta=true'
+    return url, headers, payload
+
+
+def _gemini_request(account, model, effort, prompt, instructions, creds, extra):
+    _auth_type, token = _bearer_or_key(account, creds)
+    if not re.fullmatch(r'[a-zA-Z0-9._-]+', model):
+        raise ProbeError('MODEL_NOT_CONFIGURED', 'Gemini 模型配置无效')
+    headers = {'Content-Type': 'application/json', 'Accept': 'text/event-stream',
+               'x-goog-api-key': token}
+    base = creds.get('base_url') or 'https://generativelanguage.googleapis.com'
+    url = endpoint(base, 'models/' + model + ':streamGenerateContent', version='v1beta') + '?alt=sse'
+    payload = {'systemInstruction': {'parts': [{'text': instructions}]},
+               'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
+               'generationConfig': {'maxOutputTokens': GEMINI_MAX_OUTPUT_TOKENS,
+                                    'thinkingConfig': {'thinkingLevel': effort.upper()}}}
+    return url, headers, payload
+
+
+def _xai_request(account, model, effort, prompt, instructions, creds, extra):
+    auth_type, token = _bearer_or_key(account, creds)
+    headers = {'Content-Type': 'application/json', 'Accept': 'text/event-stream',
+               'Authorization': 'Bearer ' + token}
+    if auth_type == 'oauth':
+        base = creds.get('base_url') or 'https://cli-chat-proxy.grok.com'
+        url = endpoint(base, 'responses')
+        if urlsplit(url).hostname != 'cli-chat-proxy.grok.com':
+            raise ProbeError('UNSAFE_OAUTH_HOST', 'Grok OAuth 只允许已核实的官方网关')
+        headers.update({'X-XAI-Token-Auth': 'xai-grok-cli', 'x-grok-client-version': GROK_VERSION,
+                        'x-grok-client-identifier': 'grok-shell', 'X-Grok-Client-Mode': 'interactive',
+                        'User-Agent': 'xai-grok-workspace/' + GROK_VERSION})
+    else:
+        base = creds.get('base_url') or 'https://api.x.ai'
+        url = endpoint(base, 'responses')
+    payload = {'model': model, 'stream': True, 'store': False, 'instructions': instructions,
+               'input': [{'role': 'user', 'content': prompt}], 'reasoning': {'effort': effort}}
+    return url, headers, payload
+
+
+def request_instructions(instructions, request_id):
+    """Prefix every request with a unique id so cached history cannot help."""
+    return ('独立请求标识：' + request_id + '。此标识不是题目，不要在回答中复述。'
+            '请独立完成本次请求，不引用其他对话。\n' + instructions)
+
+
+def fresh_headers(request_id):
+    """Headers that keep each probe out of any client or edge cache."""
+    return {'X-Client-Request-Id': request_id,
+            'Cache-Control': 'no-cache, no-store',
+            'Pragma': 'no-cache'}
 
 
 def extract_response(response):

@@ -14,6 +14,7 @@ BENCHMARKS = {
         'model': spec['model'],
         'effort': spec.get('effort') or 'medium',
         'label': spec.get('label') or name,
+        'protocol': config.protocol_for(name),
     }
     for name, spec in config.enabled_platforms().items()
 }
@@ -22,6 +23,21 @@ BENCHMARKS = {
 def platform_config(platform):
     """Return the benchmark spec for a platform, or an empty dict when disabled."""
     return BENCHMARKS.get(platform) or {}
+
+
+def benchmark_spec(platform):
+    """Resolve a platform's probe spec from live config.
+
+    Unlike ``BENCHMARKS`` (an import-time snapshot used for display), this reads
+    config on every call so tests and long-running workers see edits and patches.
+    """
+    spec = config.platform_spec(platform)
+    if not spec or not spec.get('model'):
+        return {}
+    return {'model': spec['model'],
+            'effort': spec.get('effort') or 'medium',
+            'label': spec.get('label') or platform,
+            'protocol': config.protocol_for(platform)}
 
 
 def default_model():

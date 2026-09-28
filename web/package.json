@@ -3,7 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {"build":"vite build", "dev":"vite --host 127.0.0.1", "check":"node --check vite.config.js"},
-  "dependencies": {"react":"19.1.1", "react-dom":"19.1.1", "lucide-react":"0.468.0"},
-  "devDependencies": {"vite":"7.1.3"}
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite --host 127.0.0.1",
+    "check": "node --check vite.config.js"
+  },
+  "dependencies": {
+    "lucide-react": "0.468.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "vite": "^7.3.6"
+  }
 }

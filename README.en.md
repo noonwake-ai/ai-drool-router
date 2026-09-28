@@ -16,7 +16,7 @@
 
 <p>
   <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.9%2B-green.svg?style=for-the-badge&logo=python&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-green.svg?style=for-the-badge&logo=python&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-19-58c4dc.svg?style=for-the-badge&logo=react&logoColor=white">
   <img alt="Sub2API" src="https://img.shields.io/badge/Sub2API-required-d5b769.svg?style=for-the-badge">
 </p>
@@ -56,7 +56,7 @@ The four factors combine into a composite score, and the score becomes call prio
 | 💰 **Cost ledger** | Per-request usage with the price snapshot in force at the time, summed per platform over 24 hours and 30 days |
 | 🌏 **Bilingual UI** | Simplified Chinese by default with a one-click English toggle; `?lang=en` also works as a direct link |
 | 🔒 **Credentials never reach the browser** | The dashboard only ever sees a redacted public projection |
-| 🧩 **Any model** | Models, reasoning effort and group scope all live in config. Add or remove whatever you run |
+| 🧩 **Any model** | Five wire protocols built in: OpenAI Responses, Chat Completions, Anthropic, Gemini, xAI. **Any OpenAI-compatible relay (Moonshot, DeepSeek, Qwen, Volcengine, OpenRouter…) needs config only, no code change** |
 
 ## How it works
 
@@ -95,7 +95,7 @@ Three processes, none sharing credentials:
 ### 1. What you need
 
 - A running **Sub2API** — the probe reads accounts and routes through it
-- A small Linux box with Python 3.9+ and Node 20+ (1 vCPU / 1 GB is plenty)
+- A small Linux box with Python 3.10+ and Node 20+ (1 vCPU / 1 GB is plenty)
 - A **Sub2API administrator API key**
 
 > Generate the key in your Sub2API admin settings and use it only for this project. Do not reuse a key you use elsewhere.
@@ -144,9 +144,22 @@ Change at least these three things:
   "enabled": true,
   "label": "Kimi",
   "model": "kimi-k3",
-  "effort": "max"
+  "effort": "max",
+  "protocol": "openai_chat"
 }
 ```
+
+**What `protocol` means**: it selects the wire protocol for that supplier. You can omit it — `openai`, `anthropic`, `gemini` and `grok` pick their native protocol automatically, and **any other name is treated as OpenAI-compatible Chat Completions**, so mainstream relays work out of the box.
+
+| protocol | When to use it |
+|---|---|
+| `openai_chat` | The default. Anything exposing `/v1/chat/completions`: Moonshot, DeepSeek, Qwen, Volcengine, OpenRouter, SiliconFlow… |
+| `openai_responses` | OpenAI-compatible services exposing `/v1/responses` |
+| `anthropic_messages` | Claude's `/v1/messages` |
+| `gemini_generate` | Gemini's `streamGenerateContent` |
+| `xai_responses` | xAI's `/v1/responses` |
+
+An unknown protocol name fails at startup rather than degrading silently.
 
 ### 4. Look at it for free first
 
@@ -250,13 +263,24 @@ High-effort models can spend well over ten minutes reasoning before emitting the
 }
 ```
 
-> **The default is observe-only.** Once the scores match your expectations, turn on `write_priority` to actually adjust Sub2API priority.
+> **The default is observe-only, and this switch is authoritative**: neither a CLI flag nor a systemd unit can override it. A write happens only when config sets the switch to `true` **and** the matching `--enable-*` flag is passed. Turn both on once the scores match your expectations.
+
+### Privacy
+
+```jsonc
+"privacy": {
+  "account_names": "full"   // full | alias | masked
+}
+```
+
+The board shows account names, which often reveal the real upstream. Before a public deployment, switch to `alias` (stable pseudonyms, history still lines up) or `masked` (first and last characters only).
 
 ## Security boundaries
 
 | Boundary | How |
 |---|---|
 | **No keys in the browser** | The browser only receives a redacted projection: account name, platform, model, state, scores. No tokens, no base URLs, no emails |
+| **Auditable projection** | `scripts/check_public_projection.py` checks the projection by field name and value shape, catching keys, JWTs, emails, private IPs and unknown hosts. CI runs it on every push |
 | **No keys in Git** | `config.json`, `.env`, `credentials/` and `data/` are all ignored |
 | **No keys in logs** | Every upstream error is redacted before storage — keys, tokens, emails and upstream URLs are replaced |
 | **Process isolation** | The web process cannot read the private database or the credential directory, and can only write control files |

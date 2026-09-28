@@ -9,9 +9,9 @@ OPENAI = {'group_ids': [4], 'group_names': [], 'exclude_names': ['生图', 'imag
 
 
 class AccountScopeTests(unittest.TestCase):
-    def row(self, groups, name='fixture', platform='openai'):
-        return {'id': 1, 'name': name, 'platform': platform, 'group_ids': groups,
-                'status': 'active', 'schedulable': True}
+    def row(self, group_ids, name='fixture', platform='openai', **extra):
+        return {'id': 1, 'name': name, 'platform': platform, 'group_ids': group_ids,
+                'status': 'active', 'schedulable': True, **extra}
 
     def test_without_group_configuration_every_enabled_platform_account_is_in_scope(self):
         spec = {'group_ids': [], 'group_names': [], 'exclude_names': []}
@@ -31,15 +31,36 @@ class AccountScopeTests(unittest.TestCase):
             self.assertFalse(in_evaluation_scope(self.row([4], 'myimage relay')))
             self.assertTrue(in_evaluation_scope(self.row([4], 'plain relay')))
 
-    def test_group_scope_accepts_ids_and_names_and_ignores_bool_or_string_ids(self):
-        spec = {'group_ids': [4], 'group_names': ['openai-main'], 'exclude_names': []}
+    def test_group_ids_scope_is_authoritative_and_ignores_non_integer_ids(self):
+        spec = {'group_ids': [4], 'group_names': [], 'exclude_names': []}
         with patch.dict(config.CONFIG['platforms']['openai'], spec):
             self.assertTrue(in_evaluation_scope(self.row([4])))
             self.assertTrue(in_evaluation_scope(self.row([4, 10])))
-            self.assertTrue(in_evaluation_scope(self.row(['openai-main'])))
             for groups in ([], [10], [18], ['4'], [True], None):
                 with self.subTest(groups=groups):
                     self.assertFalse(in_evaluation_scope(self.row(groups)))
+
+    def test_name_scope_needs_the_gateway_to_publish_names(self):
+        spec = {'group_ids': [], 'group_names': ['openai-main'], 'exclude_names': []}
+        with patch.dict(config.CONFIG['platforms']['openai'], spec):
+            self.assertTrue(in_evaluation_scope(self.row([4], group_names=['OpenAI-Main'])))
+            self.assertTrue(in_evaluation_scope(self.row([4], groups=[{'name': 'openai-main'}])))
+            self.assertFalse(in_evaluation_scope(self.row([4], group_names=['image-only'])))
+
+    def test_name_scope_without_published_names_is_unknown_not_silently_excluded(self):
+        # A numeric id list plus a name rule must not be guessed: including or
+        # excluding the account silently could probe something unintended.
+        spec = {'group_ids': [], 'group_names': ['openai-main'], 'exclude_names': []}
+        with patch.dict(config.CONFIG['platforms']['openai'], spec):
+            from detector.upstream import scope_state
+            self.assertEqual(scope_state(self.row([4])), 'unknown')
+
+    def test_name_and_id_scope_both_apply_when_both_are_configured(self):
+        spec = {'group_ids': [4], 'group_names': ['openai-main'], 'exclude_names': []}
+        with patch.dict(config.CONFIG['platforms']['openai'], spec):
+            self.assertTrue(in_evaluation_scope(self.row([4])))
+            self.assertTrue(in_evaluation_scope(self.row([7], group_names=['openai-main'])))
+            self.assertFalse(in_evaluation_scope(self.row([7], group_names=['other'])))
 
     def test_discovery_filters_by_scope_and_keeps_other_platforms(self):
         rows = [{**self.row(g, n), 'id': i} for i, (g, n) in enumerate(

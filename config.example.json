@@ -20,6 +20,7 @@
     "openai": {
       "enabled": true,
       "label": "GPT",
+      "protocol": "openai_responses",
       "model": "gpt-6-astra",
       "effort": "medium",
       "group_ids": [],
@@ -29,6 +30,7 @@
     "anthropic": {
       "enabled": true,
       "label": "Claude",
+      "protocol": "anthropic_messages",
       "model": "claude-opus-5-5",
       "effort": "medium",
       "group_ids": [],
@@ -38,6 +40,7 @@
     "gemini": {
       "enabled": true,
       "label": "Gemini",
+      "protocol": "gemini_generate",
       "model": "gemini-3.8-flash",
       "effort": "high",
       "group_ids": [],
@@ -47,6 +50,7 @@
     "grok": {
       "enabled": true,
       "label": "Grok",
+      "protocol": "xai_responses",
       "model": "grok-4.7",
       "effort": "high",
       "group_ids": [],
@@ -72,5 +76,8 @@
     "stability_endpoint": ""
   },
   "retention": {"artifacts_hours": 24, "cost_days": 30},
+  "privacy": {
+    "account_names": "full"
+  },
   "identity_salt": "change-this-to-a-private-random-string"
 }

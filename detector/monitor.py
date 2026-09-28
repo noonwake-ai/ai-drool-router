@@ -203,6 +203,7 @@ class Store:
                 return
             r = dict(row)
             detail = {k:r[k] for k in ('id','name','slot','kind','status','attempts','created_at','finished_at','duration','error_code','error','answer','response','actual_model','source')}
+            detail['name'] = config.public_account_name(r['account_id'], r['name'])
             detail.update({'model':r['model'], 'effort':r['effort'], 'platform':r['platform'], 'prompt':PROMPTS[r['kind']], 'instructions':INSTRUCTIONS[r['kind']],
                            'expected_answer':EXPECTED_ANSWER if r['kind']=='candy' else None,
                            'tokens':json.loads(r['tokens']), 'attempt_log':json.loads(r['attempt_log']),
@@ -247,7 +248,8 @@ class Store:
                 routing = db.execute('SELECT action,error_code,updated_at FROM quality_routing WHERE account_id=?',(a['account_id'],)).fetchone()
                 circuit = db.execute('SELECT active,opened_at,trigger_slot FROM request_circuits WHERE account_id=?',(a['account_id'],)).fetchone()
                 accounts.append({'id':public_id(a['account_id']),
-                                 'name':a['name'],'type':a['account_type'], 'platform':a['platform'],
+                                 'name':config.public_account_name(a['account_id'],a['name']),
+                                 'type':a['account_type'], 'platform':a['platform'],
                                  'model':a['model'], 'effort':a['effort'], 'configured':bool(a['model']),
                                  'paused':control.get('paused',False), 'resume_at':control.get('resume_at',0), 'history':histories,
                                  'routing':dict(routing) if routing else None, 'circuit':dict(circuit) if circuit else None,
@@ -259,7 +261,7 @@ class Store:
                    'server_time':now,'generated_at':now,'next_run_at':next_slot(now),
                    'history_hours':int(config.get('retention.artifacts_hours',24)),
                    'interval_seconds':schedule_info(now)['interval_seconds'],'schedule':schedule_info(now),
-                   'max_retries':max(0,int(config.get('budgets.max_attempts',3))-1),'refresh_seconds':30,
+                   'max_retries':max(0,config.max_attempts()-1),'refresh_seconds':30,
                    'accounts':accounts,'scheduler':meta,
                    'costs':self.costs.summary(now), 'request_policy':REQUEST_POLICY,
                    'question_bank':{'version':VERSION,'templates':len(TEMPLATES),'confirmation':CONFIRMATION,
@@ -267,6 +269,7 @@ class Store:
                    'prompts':PROMPTS,'instructions':INSTRUCTIONS,'request_client':CLIENT_INFO, 'benchmarks':BENCHMARKS,
                    'routing_writes':{'priority':bool(config.get('routing.write_priority')),
                                      'callable':bool(config.get('routing.write_callable'))},
+                   'method_locale':'zh',
                    'method':'HTTP 直连适配器（不是 CLI 子进程）。读取 Sub2API 账户配置，使用对应账户的上游凭据和代理独立请求，不经过分组网关或负载均衡。'}
             atomic_write(self.public/'state.json',json.dumps(out,ensure_ascii=False))
 
@@ -294,7 +297,8 @@ def execute_run(store, api, run, batch_deadline, request_fn=probe, sleep=time.sl
     start = time.monotonic()
     attempt_log = json.loads(run['attempt_log'])
     client = client_info(run['platform'])
-    for attempt in range(run['attempts']+1, 4):
+    limit = config.max_attempts()
+    for attempt in range(run['attempts']+1, limit+1):
         if store.controls.blocked(public_id(run['account_id']), run['slot']):
             store.update(run['id'],status='paused',finished_at=time.time(),duration=time.monotonic()-start)
             return
@@ -309,8 +313,8 @@ def execute_run(store, api, run, batch_deadline, request_fn=probe, sleep=time.sl
             account = api.account(run['account_id'])
             if isinstance(account, dict) and account.get('platform', 'openai') != run['platform']:
                 raise ProbeError('ACCOUNT_IDENTITY_MISMATCH', '账户平台已变化，本轮未调用')
-            config = BENCHMARKS.get(run['platform'], {})
-            if config.get('model') != run['model'] or config.get('effort') != run['effort']:
+            spec = BENCHMARKS.get(run['platform'], {})
+            if spec.get('model') != run['model'] or spec.get('effort') != run['effort']:
                 raise ProbeError('MODEL_CONFIG_CHANGED', '本轮模型或思考等级已变化，等待下一轮检测')
             quota = oauth_quota_state(account)
             if quota['limited']:
@@ -352,17 +356,18 @@ def execute_run(store, api, run, batch_deadline, request_fn=probe, sleep=time.sl
         # A budget truncation repeats the same wall; resending would burn another full budget.
         walled = code in BUDGET_ERRORS
         store.update(run['id'],error_code=code,error=message,attempt_log=json.dumps(attempt_log,ensure_ascii=False),
-                     **({'status':'error','finished_at':time.time(),'duration':time.monotonic()-start} if attempt==3 or trip or walled else {}))
+                     **({'status':'error','finished_at':time.time(),'duration':time.monotonic()-start} if attempt>=limit or trip or walled else {}))
         if trip:
             if quality_router:
                 quality_router.reconcile()
             return
         if walled:
             return
-        if attempt<3:
-            sleep((5,15)[attempt-1])
-    if run['attempts'] >= 3:
-        store.update(run['id'],status='error',error_code='ATTEMPTS_EXHAUSTED',error='已用完 1 次请求和最多 2 次重试',finished_at=time.time())
+        if attempt<limit:
+            sleep((5,15)[min(attempt-1,len((5,15))-1)])
+    if run['attempts'] >= limit:
+        store.update(run['id'],status='error',error_code='ATTEMPTS_EXHAUSTED',
+                     error='已用完 1 次请求和最多 %d 次重试' % (limit-1),finished_at=time.time())
 
 
 def execute_logic_run(store, api, run, batch_deadline, request_fn, sleep, quality_router):
@@ -403,7 +408,8 @@ def execute_logic_run(store, api, run, batch_deadline, request_fn, sleep, qualit
         phase = 'verification' if index else 'primary'
         prior_attempts = sum(a.get('stage',0)==index for a in log)
         save(status='running',phase=phase,error_code=None,error=None)
-        for attempt in range(prior_attempts+1, 4):
+        limit = config.max_attempts()
+        for attempt in range(prior_attempts+1, limit+1):
             if store.controls.blocked(public_id(run['account_id']),run['slot']):
                 finish('paused')
                 return
@@ -420,8 +426,8 @@ def execute_logic_run(store, api, run, batch_deadline, request_fn, sleep, qualit
                 account = api.account(run['account_id'])
                 if isinstance(account,dict) and account.get('platform','openai') != run['platform']:
                     raise ProbeError('ACCOUNT_IDENTITY_MISMATCH','账户平台已变化，本轮未调用')
-                config = BENCHMARKS.get(run['platform'],{})
-                if config.get('model')!=run['model'] or config.get('effort')!=run['effort']:
+                spec = BENCHMARKS.get(run['platform'], {})
+                if spec.get('model')!=run['model'] or spec.get('effort')!=run['effort']:
                     raise ProbeError('MODEL_CONFIG_CHANGED','本轮模型配置已变化，等待下一轮')
                 quota = oauth_quota_state(account)
                 if quota['limited']:
@@ -471,14 +477,16 @@ def execute_logic_run(store, api, run, batch_deadline, request_fn, sleep, qualit
                 store.costs.finish(entry['request_id'], 'error')
             entry.update(status='error',code=code,message=message,seconds=round(time.monotonic()-attempt_start,2),timings=timings,
                          failure_class=request_failure_class(code,request_called))
-            if attempt==3 or run.get('request_policy')==REQUEST_POLICY and consecutive_request_errors(log):
+            if attempt>=limit or run.get('request_policy')==REQUEST_POLICY and consecutive_request_errors(log):
                 results.append({'question_id':question['id'],'status':'error','error_code':code,'error':message,'attempts':attempt})
                 finish('error',error_code=code,error=message)
                 return
             save(error_code=code,error=message)
-            sleep((5,15)[attempt-1])
+            if attempt < limit:
+                sleep((5,15)[min(attempt-1,len((5,15))-1)])
         else:
-            finish('error',error_code='ATTEMPTS_EXHAUSTED',error='本题已用完 1 次请求和最多 2 次重试，未作答错判定')
+            finish('error',error_code='ATTEMPTS_EXHAUSTED',
+                   error='本题已用完 1 次请求和最多 %d 次重试，未作答错判定' % (limit-1))
             return
 
 
@@ -497,7 +505,23 @@ def read_admin_key(key_file):
     return (os.environ.get('SUB2API_ADMIN_KEY') or '').strip()
 
 
-def collect(root, key_file, base_url, source='timer', metadata_only=False, quality_routing=False, reconcile_only=False, priority_routing=False):
+def collect(root, key_file, base_url, source='timer', metadata_only=False,
+            quality_routing=None, reconcile_only=False, priority_routing=None):
+    """Run one scheduled pass.
+
+    ``quality_routing`` (callable circuit writes) and ``priority_routing``
+    (priority writes) are resolved from ``config.json``: see
+    ``config.write_enabled``. Passing an explicit boolean only takes effect when
+    config already authorises that write, so no CLI flag or unit file can turn a
+    gateway mutation on behind the deployer's back.
+    """
+    requested_quality = bool(quality_routing)
+    requested_priority = bool(priority_routing)
+    quality_routing = config.write_enabled('callable') and requested_quality
+    priority_routing = config.write_enabled('priority') and requested_priority
+    if (requested_quality and not quality_routing) or (requested_priority and not priority_routing):
+        print(json.dumps({'status': 'write_disabled_by_config',
+                          'detail': 'routing.write_callable / routing.write_priority are false'}), flush=True)
     os.umask(0o027)
     store = Store(root)
     with open(store.private/'worker.lock','w') as lock:
@@ -576,8 +600,10 @@ if __name__=='__main__':
     parser.add_argument('--key-file',default=os.environ.get('SUB2API_ADMIN_KEY_FILE',''))
     parser.add_argument('--source',choices=('timer','initial'),default='timer')
     parser.add_argument('--metadata-only',action='store_true')
-    parser.add_argument('--enable-quality-routing',action='store_true')
-    parser.add_argument('--enable-priority-routing',action='store_true')
+    parser.add_argument('--enable-quality-routing',action='store_true',
+                        help='Request callable/circuit writes. Ignored unless config.json sets routing.write_callable=true.')
+    parser.add_argument('--enable-priority-routing',action='store_true',
+                        help='Request priority writes. Ignored unless config.json sets routing.write_priority=true.')
     parser.add_argument('--reconcile-quality',action='store_true',help='Reconcile latest existing results without model requests')
     args = parser.parse_args()
     if not args.base_url:

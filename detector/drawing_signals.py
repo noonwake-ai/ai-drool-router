@@ -49,7 +49,11 @@ def analyze(text, profile):
     preface = matches(paragraph)
     source = bounded[start.start():] if start else ''
     parser = Descriptions()
-    parse_error = False
+    # HTMLParser raises on some malformed input and silently tolerates it on
+    # others depending on the Python version, so detect the shapes we care about
+    # explicitly instead of relying on parser internals.
+    parse_error = bool(re.search(r'<!--(?!.*?-->)', source, re.S)) or \
+        bool(re.search(r'<!\[(?!CDATA\[)', source))
     try:
         parser.feed(source)
     except (ValueError, AssertionError, NotImplementedError):

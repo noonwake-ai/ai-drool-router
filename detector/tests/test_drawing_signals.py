@@ -53,8 +53,17 @@ class SignalTests(unittest.TestCase):
         self.assertIsNone(from_attempts([{'drawing_signals':{'version':'future'}}]))
 
     def test_invalid_comment_is_non_fatal(self):
-        data = analyze('<html><![oops]><svg></svg></html>', DRAWING_PROFILE)
-        self.assertTrue(data['description_parse_error'])
+        # The contract is "never crash, always report", on every Python version.
+        for broken in ('<html><![oops]><svg></svg></html>',
+                       '<html><!-- unterminated <svg></svg></html>'):
+            with self.subTest(broken=broken):
+                data = analyze(broken, DRAWING_PROFILE)
+                self.assertTrue(data['description_parse_error'])
+                self.assertEqual(data['version'], VERSION)
+
+    def test_well_formed_source_is_not_flagged_as_a_parse_error(self):
+        data = analyze('<!doctype html><html><!-- ok --><svg></svg></html>', DRAWING_PROFILE)
+        self.assertFalse(data['description_parse_error'])
 
     def test_new_observations_preserve_pass_and_publish_compact_history(self):
         with tempfile.TemporaryDirectory() as root:

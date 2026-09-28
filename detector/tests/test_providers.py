@@ -9,6 +9,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from unittest.mock import Mock, patch
 
+from detector import config
 from detector.controls import ControlConflict, Controls
 from detector.monitor import Store, execute_run, hour, public_id
 from detector.prompts import BENCHMARKS, CANDY_PROMPT, DRAWING_PROMPT
@@ -314,7 +315,10 @@ class ProviderTests(unittest.TestCase):
             account['credentials']['model_mapping']={BENCHMARKS[platform]['model']:'other-model'}
             with self.assertRaises(ProbeError) as exc:build_request(account,'candy')
             self.assertEqual(exc.exception.code,'MODEL_MAPPING_MISMATCH')
-        with patch.dict(BENCHMARKS,{'gemini':{'model':None,'effort':None}}):
+        # A platform with no model configured must refuse to probe before any
+        # credential is used. Force that through live config, not the display snapshot.
+        platform = config.CONFIG['platforms']['gemini']
+        with patch.dict(platform, {'model': ''}):
             with self.assertRaises(ProbeError) as exc:build_request(self.account('gemini'),'candy')
             self.assertEqual(exc.exception.code,'MODEL_NOT_CONFIGURED')
 

@@ -16,7 +16,7 @@
 
 <p>
   <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.9%2B-green.svg?style=for-the-badge&logo=python&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-green.svg?style=for-the-badge&logo=python&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-19-58c4dc.svg?style=for-the-badge&logo=react&logoColor=white">
   <img alt="Sub2API" src="https://img.shields.io/badge/Sub2API-required-d5b769.svg?style=for-the-badge">
 </p>
@@ -56,7 +56,7 @@
 | 💰 **成本账本** | 逐请求记录用量与当时价格快照，近 24 小时与近 30 天分平台汇总 |
 | 🌏 **中英双语** | 页面默认简体中文，一键切英文；`?lang=en` 直链也可 |
 | 🔒 **凭据不出后端** | 浏览器永远拿不到任何上游密钥，看板只有脱敏后的公开投影 |
-| 🧩 **任何模型** | 模型、思考等级、分组范围全部写在配置里。支持市面上的模型，按需增删 |
+| 🧩 **任何模型** | 内置 OpenAI Responses / Chat Completions / Anthropic / Gemini / xAI 五种协议。**任何 OpenAI 兼容的中转站（Moonshot、DeepSeek、Qwen、火山、OpenRouter……）加一段配置就能测，不用改代码** |
 
 ## 它是怎么工作的
 
@@ -95,7 +95,7 @@
 ### 1. 你需要准备什么
 
 - 一个已经跑起来的 **Sub2API**（这是前提，检测靠它管理账号和路由）
-- 一个能跑 Python 3.9+ 和 Node 20+ 的 Linux 小机器（1 核 1G 就够）
+- 一个能跑 Python 3.10+ 和 Node 20+ 的 Linux 小机器（1 核 1G 就够）
 - 一个 **Sub2API 管理员 API Key**
 
 > 密钥怎么拿：登录你的 Sub2API 后台，在管理员/API Key 相关设置里生成一个。它只给这个检测项目用，别复用你日常的 key。
@@ -146,9 +146,24 @@ cp config.example.json config.json
   "enabled": true,
   "label": "Kimi",
   "model": "kimi-k3",
-  "effort": "max"
+  "effort": "max",
+  "protocol": "openai_chat"
 }
 ```
+
+**`protocol` 是干嘛的**：它告诉检测器用哪种线协议跟这家上游说话。可以不填——`openai` / `anthropic` / `gemini` / `grok` 会自动选原生协议，**其他任何名字默认按 OpenAI 兼容的 Chat Completions 处理**，所以主流中转站开箱即用。
+
+能填的值：
+
+| protocol | 什么时候用 |
+|---|---|
+| `openai_chat` | 默认值。任何提供 `/v1/chat/completions` 的服务：Moonshot、DeepSeek、通义、火山方舟、OpenRouter、SiliconFlow…… |
+| `openai_responses` | 提供 `/v1/responses` 的 OpenAI 兼容服务 |
+| `anthropic_messages` | Claude 的 `/v1/messages` |
+| `gemini_generate` | Gemini 的 `streamGenerateContent` |
+| `xai_responses` | xAI 的 `/v1/responses` |
+
+填错名字会在启动时直接报错，不会静默降级。
 
 ### 4. 先在不花钱的模式下看一眼
 
@@ -254,7 +269,17 @@ sudo systemctl enable --now drool-detector-worker.timer drool-detector-sync.time
 }
 ```
 
-> **默认是「只看不改」**。确认分数符合你的预期之后，再把 `write_priority` 打开，让它真的去调 Sub2API 的优先级。
+> **默认是「只看不改」**，而且这个开关说了算：命令行参数和 systemd 单元都绕不过它。两个条件同时满足才会写——`config.json` 里对应开关为 `true`，**并且**启动命令带上了对应的 `--enable-*`。确认分数符合预期后，再把两处都打开。
+
+### 隐私
+
+```jsonc
+"privacy": {
+  "account_names": "full"   // full | alias | masked
+}
+```
+
+看板会展示账号名，而账号名常常暴露真实上游。公网部署前可以改成 `alias`（稳定假名，历史仍能对齐）或 `masked`（只留首尾字符）。
 
 ## 安全边界
 
@@ -263,6 +288,7 @@ sudo systemctl enable --now drool-detector-worker.timer drool-detector-sync.time
 | 边界 | 做法 |
 |---|---|
 | **密钥不落前端** | 浏览器只拿得到一个脱敏后的公开投影：账号名、平台、模型、状态、分数。没有 token、没有 base_url、没有邮箱 |
+| **可审计的公开投影** | 仓库带 `scripts/check_public_projection.py`，按字段名和取值形态检查投影，拦密钥、JWT、邮箱、内网 IP、未知域名。CI 每次都跑 |
 | **密钥不落 Git** | `config.json`、`.env`、`credentials/`、`data/` 全在 `.gitignore` 里 |
 | **密钥不进日志** | 所有上游错误在写库前都会跑一遍脱敏，密钥、令牌、邮箱、上游地址全部替换 |
 | **进程隔离** | Web 进程读不到私有库和凭据目录，只能写控制文件 |

@@ -26,7 +26,15 @@ FORBIDDEN_VALUE_PATTERNS = (
     (re.compile(r'\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.'), 'JWT'),
     (re.compile(r'\bBearer\s+[A-Za-z0-9._-]{16,}'), 'bearer token'),
     (re.compile(r'[\w.+-]+@[\w-]+\.[A-Za-z]{2,}'), 'email address'),
+    (re.compile(r'\b(?:10|127)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'), 'private IPv4 address'),
+    (re.compile(r'\b192\.168\.\d{1,3}\.\d{1,3}\b'), 'private IPv4 address'),
+    (re.compile(r'\b172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b'), 'private IPv4 address'),
+    (re.compile(r'\b100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}\b'), 'carrier-grade NAT address'),
+    (re.compile(r'\b169\.254\.\d{1,3}\.\d{1,3}\b'), 'link-local address'),
 )
+# Any absolute URL is suspect in a public projection except documentation links.
+URL_PATTERN = re.compile(r'https?://([^\s/:"\']+)')
+ALLOWED_URL_HOSTS = {'github.com', 'raw.githubusercontent.com', 'opensource.org', 'noonwake.ai'}
 
 
 def walk(node, path='$'):
@@ -50,6 +58,10 @@ def check(state):
             for pattern, label in FORBIDDEN_VALUE_PATTERNS:
                 if pattern.search(value):
                     problems.append('%s: value looks like a %s' % (path, label))
+            for host in URL_PATTERN.findall(value):
+                host = host.lower().split('@')[-1]
+                if host not in ALLOWED_URL_HOSTS and not host.endswith('.noonwake.ai'):
+                    problems.append('%s: absolute URL to %r in a public projection' % (path, host))
     if not isinstance(state, dict) or not state.get('accounts'):
         problems.append('$: projection has no accounts, so it proves nothing')
     return problems

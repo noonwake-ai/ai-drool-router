@@ -1,6 +1,8 @@
-requests[socks]==2.32.5
+# Python 3.10+ is required: the newest urllib3 without known advisories
+# (2.7.0+) needs 3.10, and the last 3.9-compatible release carries open CVEs.
+requests[socks]==2.34.2
 certifi==2026.7.22
 charset-normalizer==3.5.1
-idna==3.19
+idna==3.20
 PySocks==1.7.1
-urllib3==2.7.0
+urllib3==2.8.0
