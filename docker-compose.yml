@@ -1,0 +1,44 @@
+# Minimal single-host layout. `web` is the only service that needs to be
+# reachable; `worker` and `pricing` hold the Sub2API key.
+#
+#   cp config.example.json config.json   # then edit it
+#   printf 'SUB2API_ADMIN_KEY=...\n' > .env
+#   docker compose up -d
+services:
+  web:
+    build: .
+    command: web
+    ports:
+      - "127.0.0.1:4191:4191"
+    volumes:
+      - ./config.json:/etc/drool-detector/config.json:ro
+      - drool-data:/data
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: worker
+    environment:
+      SUB2API_ADMIN_KEY: ${SUB2API_ADMIN_KEY:?set SUB2API_ADMIN_KEY in .env}
+      # Enable writes here only after reading the README section on routing.
+      DROOL_ROUTING_WRITE_PRIORITY: "false"
+      DROOL_ROUTING_WRITE_CALLABLE: "false"
+    volumes:
+      - ./config.json:/etc/drool-detector/config.json:ro
+      - drool-data:/data
+    restart: unless-stopped
+
+  pricing:
+    build: .
+    command: pricing
+    environment:
+      SUB2API_ADMIN_KEY: ${SUB2API_ADMIN_KEY:?set SUB2API_ADMIN_KEY in .env}
+      DROOL_ROUTING_WRITE_PRIORITY: "false"
+      DROOL_ROUTING_WRITE_CALLABLE: "false"
+    volumes:
+      - ./config.json:/etc/drool-detector/config.json:ro
+      - drool-data:/data
+    restart: unless-stopped
+
+volumes:
+  drool-data:

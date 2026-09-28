@@ -196,6 +196,26 @@ python3 -m detector.server --dist web/dist --public ./data/public
 
 ## 部署
 
+### 方式一：Docker（推荐，最省事）
+
+```bash
+cp config.example.json config.json      # 改 base_url 和 platforms
+printf 'SUB2API_ADMIN_KEY=你的密钥\n' > .env
+
+docker compose up -d
+# 打开 http://127.0.0.1:4191/
+```
+
+只能先看一眼界面、不花钱也不连网关：
+
+```bash
+docker compose run --rm --service-ports web preview
+```
+
+镜像分三个服务：`web`（只读看板）、`worker`（定时检测）、`pricing`（倍率变化时重算优先级）。**只有 worker 和 pricing 拿得到密钥，web 拿不到。** 数据放在 `drool-data` 卷里。
+
+### 方式二：systemd
+
 仓库里带了一套现成的 systemd 单元，直接抄就能用。
 
 ```bash

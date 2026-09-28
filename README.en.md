@@ -192,6 +192,26 @@ python3 -m detector.server --dist web/dist --public ./data/public
 
 ## Deploy
 
+### Option 1: Docker (simplest)
+
+```bash
+cp config.example.json config.json      # set base_url and platforms
+printf 'SUB2API_ADMIN_KEY=your-key\n' > .env
+
+docker compose up -d
+# open http://127.0.0.1:4191/
+```
+
+To look at the UI only — no gateway, no spend:
+
+```bash
+docker compose run --rm --service-ports web preview
+```
+
+The image runs three services: `web` (read-only board), `worker` (scheduled probes) and `pricing` (recomputes priority when a rate changes). **Only worker and pricing receive the key; web never does.** State lives in the `drool-data` volume.
+
+### Option 2: systemd
+
 Ready-made systemd units live in `deploy/`.
 
 ```bash

@@ -1,0 +1,59 @@
+name: 报告问题
+description: 检测结果不对、页面异常、部署失败
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **提交前请先确认：不要贴任何真实密钥、令牌、cookie 或账号邮箱。**
+        需要贴配置时，请把 `base_url`、账号名和 `SUB2API_ADMIN_KEY` 换成占位符。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 期望看到什么，实际看到什么。
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 配置里设了 ...
+        2. 执行了 ...
+        3. 看到 ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 提交号，或发布包名字。
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: 部署方式
+      options:
+        - Docker Compose
+        - systemd
+        - 直接跑 Python
+        - 只用了 dev_preview 预览
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: 请自行脱敏。`journalctl -u drool-detector-worker -n 50` 或 `docker compose logs worker`。
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我已经确认上面没有任何真实密钥或凭据
+          required: true
