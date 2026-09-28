@@ -95,6 +95,14 @@ sudoedit /etc/ai-drool-detector/config.json
 }
 ```
 
+如果看板要暴露到公网，**再改一处**：
+
+```jsonc
+"privacy": {"account_names": "alias"}
+```
+
+账号名常常直接暴露你的真实上游（比如供应商全名、带公司后缀的账号名）。`alias` 会把它换成稳定的假名，历史记录仍然对齐；`masked` 则只保留首尾字符。只在内网用可以保持 `full`。
+
 `identity_salt` 用来把账号 ID 哈希成公开 ID。换掉它会让看板上的账号 ID 全部变化（历史记录仍保留，但前端缓存会重新取），所以**一旦上线就别再改**。
 
 再放密钥：

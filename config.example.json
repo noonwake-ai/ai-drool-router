@@ -77,6 +77,7 @@
   },
   "retention": {"artifacts_hours": 24, "cost_days": 30},
   "privacy": {
+    "_comment": "full = 显示网关里的原始账号名；alias = 稳定假名（推荐公网部署）；masked = 只留首尾字符",
     "account_names": "full"
   },
   "identity_salt": "change-this-to-a-private-random-string"
