@@ -6,7 +6,8 @@ state.json into a temporary data directory and starts the read-only dashboard,
 which is what a deployer sees in production minus the live probes.
 
     python3 scripts/dev_preview.py
-    python3 scripts/dev_preview.py --port 4192 --lang-check
+    python3 scripts/dev_preview.py --port 4192
+    python3 scripts/dev_preview.py --write-only --data /tmp/drool-preview
 """
 import argparse
 import json
