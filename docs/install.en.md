@@ -6,14 +6,14 @@
 > (Codex, Claude Code, Cursor, Windsurf — any of them will do):
 >
 > ```
-> Deploy Drool Detector & Router for me: https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.en.md
+> Deploy AI Drool Router for me: https://raw.githubusercontent.com/noonwake-ai/ai-drool-router/main/docs/install.en.md
 > ```
 
 ---
 
 ## Your task
 
-Deploy Drool Detector & Router on the user's machine and **verify it actually produced
+Deploy AI Drool Router on the user's machine and **verify it actually produced
 probe results**. This is not a "commands ran, therefore done" task. Until there
 is a real probe record on disk, it is not installed.
 
@@ -67,7 +67,7 @@ curl -s -o /dev/null -w '%{http_code}\n' <the Sub2API URL the user gave you>/hea
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/noonwake-ai/drool-detector.git
+git clone https://github.com/noonwake-ai/ai-drool-router.git
 cd drool-detector
 ```
 

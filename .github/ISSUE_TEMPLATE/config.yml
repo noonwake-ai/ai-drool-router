@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: 安全问题
-    url: https://github.com/noonwake-ai/drool-detector/security/advisories/new
+    url: https://github.com/noonwake-ai/ai-drool-router/security/advisories/new
     about: 请用私密漏洞报告，不要开公开 issue。

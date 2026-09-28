@@ -6,7 +6,7 @@ export const LANGUAGES=[{id:'zh',short:'中',label:'简体中文'},{id:'en',shor
 const STORAGE_KEY='drool-detector-language';
 
 const ZH={
-  'app.title':'流口水降智检测与智能调度',
+  'app.title':'AI 流口水降智调度',
   'app.slogan':'你的 AI 现在还在流口水吗？',
   'app.subtitle':'定时探针 · 依托 Sub2API · 直连上游取真实答案',
   'app.hero.body':'中转站的纯度、官方的静默降智，从外面看不出来。这个探针按固定节奏敲每一家模型的同一道题，把智力、成本、稳定性、速度摊在同一块看板上，再把算出来的分数写成 Sub2API 的调用优先级。',
@@ -208,7 +208,7 @@ const ZH={
 };
 
 const EN={
-  'app.title':'Drool Detector & Router',
+  'app.title':'AI Drool Router',
   'app.slogan':'Is your AI still drooling?',
   'app.subtitle':'Scheduled probes · powered by Sub2API · answers straight from upstream',
   'app.hero.body':'Relay purity and silent upstream degradation are invisible from the outside. This watchdog asks every configured model the same fixed question on a schedule, puts intelligence, cost, stability and speed on one board, and writes the resulting score back as Sub2API call priority.',

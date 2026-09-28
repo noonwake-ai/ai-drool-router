@@ -1,5 +1,5 @@
 [Unit]
-Description=Drool Detector & Router rate check every minute
+Description=AI Drool Router rate check every minute
 
 [Timer]
 OnCalendar=*-*-* *:*:00

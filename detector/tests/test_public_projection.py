@@ -31,7 +31,7 @@ CHECKER = load_checker()
 def baseline():
     """A minimal projection shaped like the real one."""
     return {
-        'title': '流口水降智检测与智能调度',
+        'title': 'AI 流口水降智调度',
         'accounts': [
             {'id': 'abcdef123456', 'name': 'relay-alpha', 'type': 'apikey',
              'platform': 'openai', 'model': 'gpt-6-astra', 'effort': 'medium',
@@ -81,7 +81,7 @@ class LeakDetectionTests(unittest.TestCase):
         self.assertCaught(
             lambda p: p['accounts'][0].update({'note': 'https://api.moonshot.cn/v1'}),
             'upstream host')
-        for allowed in ('https://github.com/noonwake-ai/drool-detector',
+        for allowed in ('https://github.com/noonwake-ai/ai-drool-router',
                         'https://noonwake.ai/', 'https://codex-watch.noonwake.ai/'):
             with self.subTest(allowed=allowed):
                 payload = baseline()

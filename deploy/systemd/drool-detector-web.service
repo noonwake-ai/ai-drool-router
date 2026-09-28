@@ -1,5 +1,5 @@
 [Unit]
-Description=Drool Detector & Router public dashboard (credential-free)
+Description=AI Drool Router public dashboard (credential-free)
 After=network.target
 
 [Service]

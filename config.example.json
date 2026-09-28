@@ -1,5 +1,5 @@
 {
-  "title": "流口水降智检测与智能调度",
+  "title": "AI 流口水降智调度",
   "subtitle": "你的 AI 现在还在流口水吗？",
   "base_url": "https://your-sub2api-host",
   "data_dir": "/var/lib/drool-detector",

@@ -1,5 +1,5 @@
 [Unit]
-Description=Drool Detector & Router schedule tick (regular cadence plus the quiet window)
+Description=AI Drool Router schedule tick (regular cadence plus the quiet window)
 
 [Timer]
 # Ticks four times an hour; the worker itself decides whether the current slot

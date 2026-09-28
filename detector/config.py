@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 NoonWake.AI
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-"""Central configuration for Drool Detector & Router.
+"""Central configuration for AI Drool Router.
 
 Precedence: environment variables > config file > built-in defaults.
 The config file path comes from ``DROOL_CONFIG`` and defaults to ``./config.json``.
@@ -49,7 +49,7 @@ def protocol_for(platform):
     return IMPLIED_PROTOCOLS.get(platform, DEFAULT_PROTOCOL)
 
 DEFAULTS = {
-    'title': '流口水降智检测与智能调度',
+    'title': 'AI 流口水降智调度',
     'subtitle': '你的 AI 现在还在流口水吗？',
     'base_url': '',
     'data_dir': './data',

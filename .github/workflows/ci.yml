@@ -58,6 +58,8 @@ jobs:
         run: npm run build
       - name: The committed online demo must match the current source
         run: python3 scripts/build_demo.py --check
+      - name: The committed README diagrams must match the generator
+        run: python3 scripts/build_docs_assets.py --check
 
   e2e:
     name: End-to-end smoke

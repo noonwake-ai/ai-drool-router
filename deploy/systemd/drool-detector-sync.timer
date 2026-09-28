@@ -1,5 +1,5 @@
 [Unit]
-Description=Drool Detector & Router daily account metadata refresh
+Description=AI Drool Router daily account metadata refresh
 
 [Timer]
 OnCalendar=*-*-* 04:00:00

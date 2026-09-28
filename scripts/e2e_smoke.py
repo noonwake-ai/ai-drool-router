@@ -327,7 +327,7 @@ def mint_certificate(directory):
 
 def write_config(sandbox, gateway_url, ca_bundle, data_dir):
     config = {
-        'title': '流口水降智检测与智能调度',
+        'title': 'AI 流口水降智调度',
         'base_url': gateway_url,
         'data_dir': str(data_dir),
         'web': {'host': '127.0.0.1', 'port': 4191, 'public_controls': False},
