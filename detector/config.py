@@ -108,6 +108,13 @@ DEFAULTS = {
         'drawing_platform_seconds': {'grok': 1500},
         'max_attempts': 3,
     },
+    'upstream': {
+        # Path to a PEM bundle used to verify upstream TLS. Empty = the normal
+        # system/certifi trust store. Set this when the gateway sits behind a
+        # TLS-inspecting proxy, or when probing an internal endpoint with a
+        # private CA.
+        'ca_bundle': '',
+    },
     'routing': {
         'weights': {'intelligence': 0.36, 'cost': 0.36, 'stability': 0.18, 'speed': 0.10},
         'rounds': 3,
@@ -151,6 +158,7 @@ def _env_overrides():
         ENV_PREFIX + 'ROUTING_WRITE_PRIORITY': ('routing.write_priority', 'bool'),
         ENV_PREFIX + 'ROUTING_WRITE_CALLABLE': ('routing.write_callable', 'bool'),
         ENV_PREFIX + 'STABILITY_ENDPOINT': ('routing.stability_endpoint', str),
+        ENV_PREFIX + 'CA_BUNDLE': ('upstream.ca_bundle', str),
     }
     for name, (path, kind) in mapping.items():
         raw = os.environ.get(name)

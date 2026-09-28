@@ -25,7 +25,10 @@
       "effort": "medium",
       "group_ids": [],
       "group_names": [],
-      "exclude_names": ["生图", "image"]
+      "exclude_names": [
+        "生图",
+        "image"
+      ]
     },
     "anthropic": {
       "enabled": true,
@@ -62,11 +65,22 @@
     "default_seconds": 900,
     "idle_seconds": 120,
     "gemini_high_idle_seconds": 300,
-    "drawing_platform_seconds": {"grok": 1500},
+    "drawing_platform_seconds": {
+      "grok": 1500
+    },
     "max_attempts": 3
   },
+  "upstream": {
+    "_comment": "私有 CA 的 PEM 路径；留空使用系统信任库。企业内网套了 TLS 检查代理时填这里。",
+    "ca_bundle": ""
+  },
   "routing": {
-    "weights": {"intelligence": 0.36, "cost": 0.36, "stability": 0.18, "speed": 0.10},
+    "weights": {
+      "intelligence": 0.36,
+      "cost": 0.36,
+      "stability": 0.18,
+      "speed": 0.1
+    },
     "rounds": 3,
     "stability_rounds": 3,
     "priority_min": 100,
@@ -75,7 +89,10 @@
     "write_callable": false,
     "stability_endpoint": ""
   },
-  "retention": {"artifacts_hours": 24, "cost_days": 30},
+  "retention": {
+    "artifacts_hours": 24,
+    "cost_days": 30
+  },
   "privacy": {
     "_comment": "full = 显示网关里的原始账号名；alias = 稳定假名（推荐公网部署）；masked = 只留首尾字符",
     "account_names": "full"

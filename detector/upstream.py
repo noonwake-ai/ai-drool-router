@@ -910,9 +910,13 @@ def probe(account, kind, timeout=REQUEST_TOTAL_SECONDS, *, prompt=None, instruct
             s.trust_env = False
             if proxy:
                 s.proxies = {'http':proxy, 'https':proxy}
+            # A private CA bundle lets self-hosters probe an upstream behind a
+            # TLS-inspecting proxy. Empty means the normal trust store.
+            verify = config.get('upstream.ca_bundle') or True
             # Idle timeout resets on incoming data; the generation budget is separate.
             timings['request_sent'] = True
-            with s.post(url, headers=headers, json=payload, stream=True, timeout=(min(12,timeout),idle), allow_redirects=False) as response:
+            with s.post(url, headers=headers, json=payload, stream=True, verify=verify,
+                        timeout=(min(12,timeout),idle), allow_redirects=False) as response:
                 mark('headers_seconds')
                 response.encoding = 'utf-8'
                 if response.status_code != 200:

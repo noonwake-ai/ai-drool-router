@@ -8,9 +8,9 @@
 
 <p>
   <a href="https://noonwake-ai.github.io/ai-drool-detector/"><strong>Live demo</strong></a> ·
+  <a href="docs/install.en.md"><strong>Let an AI install it</strong></a> ·
   <a href="README.md">简体中文</a> ·
   <a href="#what-it-solves">What it solves</a> ·
-  <a href="#five-minute-setup">Five-minute setup</a> ·
   <a href="#deploy">Deploy</a> ·
   <a href="#security-boundaries">Security</a>
 </p>
@@ -26,26 +26,52 @@
 
 ![AI Drool Detector dashboard](docs/assets/dashboard-en.png)
 
-> 🚀 **[Open the live demo](https://noonwake-ai.github.io/ai-drool-detector/)** — nothing to install, no key, no cost. The data is a locally generated static snapshot and the controls are disabled there.
+---
+
+## Paste this one line into your AI
+
+```
+Deploy AI Drool Detector for me: https://raw.githubusercontent.com/noonwake-ai/ai-drool-detector/main/docs/install.en.md
+```
+
+Hand it to whatever you have around — Codex, Claude Code, Cursor, Windsurf, anything that can run a command.
+
+It reads the deployment guide, asks you exactly three things (**gateway URL, admin key, which machine**), and installs it. Then it verifies its own work: first it syncs the account list only, which **costs zero tokens**, and only then runs real probes.
+
+It will not write your key into a log, will not touch what was already on your box, and will not change your gateway's call priority behind your back.
+
+> Not ready to let anything near your server? Open the **[live demo](https://noonwake-ai.github.io/ai-drool-detector/)** first.
+> Nothing to install, no key, no cost — you just cannot press the buttons there.
 
 ---
 
 ## What it solves
 
-You pay for model quality, but you do not always get it.
+You paid for the name "Claude Opus".
 
-Relay purity is uneven, upstreams silently degrade, and a provider can swap its backend overnight. None of that is visible from the outside. Your client just says "request succeeded" and hands you an answer that looks fine while being measurably worse.
+Something else may be answering at 3am.
 
-**AI Drool Detector** does something blunt: on a fixed schedule it asks every model configured in your Sub2API the same question, puts the results on one board, and **writes the resulting score back as Sub2API call priority**.
+Relays dilute. Vendors quietly degrade. An upstream swaps its backend while you sleep. The nasty part is that **none of it raises an alarm**: your client says 200, the answer reads fine, and it has just been getting dumber since some day you cannot name.
 
-- **Intelligence** — one fixed candy question, needing two fresh independent correct answers to pass
-- **Cost** — the supplier rate multiplier you enter, where lower is cheaper
-- **Stability** — request success rate over recent rounds
-- **Speed** — latency to the first body character plus end-to-end throughput
+By the time you notice, you have written a week of code with it.
 
-The four factors combine into a composite score, and the score becomes call priority. Suppliers that degraded sink; suppliers that are genuinely healthy rise.
+**AI Drool Detector stands at the door.**
 
-> This is a **targeted reasoning probe**, not a full model evaluation. It answers one question: is this supplier still delivering the level it should?
+Every 45 minutes it walks up to each of your models with the same question — the same candy puzzle, the same drawing task — and writes down who got it right, who was slow, and who is phoning it in.
+
+Suppliers that cannot answer sink down your Sub2API call priority. Suppliers that nail it rise.
+
+Four scores:
+
+- **Intelligence** — one fixed candy question, passing needs two fresh independent correct answers
+- **Cost** — the supplier rate multiplier you enter; lower is cheaper
+- **Stability** — request success rate over the last few rounds
+- **Speed** — how long until the first body character, and end-to-end tokens per second
+
+They combine into a composite score, and the score becomes call priority. Degraded suppliers sort last; the ones that still deliver sort first.
+
+> Stated plainly: this is a **targeted reasoning probe**, not a full model evaluation.
+> It answers exactly one question — is this supplier still delivering the level it should?
 
 ## Highlights
 
@@ -358,6 +384,37 @@ Issues and PRs are welcome. Before submitting, run:
 python3 -m unittest discover -s detector/tests -t . -p 'test_*.py'
 cd web && node --test src/*.test.js && npm run build
 ```
+
+### The full end-to-end test
+
+Unit tests only exercise the parts. To exercise the whole chain:
+
+```bash
+python3 scripts/e2e_smoke.py
+```
+
+It runs inside a **fully isolated sandbox** that never touches a real gateway, credential or the public internet:
+
+- starts a fake Sub2API admin API (accounts, credentials, pricing, and the only two write endpoints this project uses)
+- starts a model upstream on **real TLS** speaking OpenAI Responses SSE
+- has three fake suppliers play "answers correctly", "answers 29 instead of 21" and "always HTTP 500"
+- runs one complete probe round and checks every outcome: the correct one passes, the wrong one is **asked only once**, the broken one trips a circuit after two upstream errors
+- brings up the dashboard and fetches `/api/state`, one record and one artwork over HTTP
+- verifies the public projection carries no credentials and that the cost ledger recorded an amount
+- runs a second round that first confirms **the gateway receives zero writes while the switches are off**, then turns them on and confirms the circuit write really happens and reads back
+
+Anything that does not match exits non-zero with `E2E FAILED`. `--keep` leaves the sandbox behind for you to poke at.
+
+### Upstream behind a private CA?
+
+If your network has a TLS-inspecting proxy:
+
+```jsonc
+// config.json
+"upstream": {"ca_bundle": "/etc/ssl/certs/your-ca.pem"}
+```
+
+or `DROOL_CA_BUNDLE=/path/to/ca.pem`. Empty means the normal trust store.
 
 Add tests with any new behaviour. For changes touching Sub2API writes, describe your read-back verification strategy.
 
