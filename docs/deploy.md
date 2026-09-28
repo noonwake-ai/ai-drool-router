@@ -241,3 +241,18 @@ sudo -u drool-worker env $(cat /etc/ai-drool-detector/drool-detector.env | xargs
 ```
 
 这条命令不发起模型请求，只读账号，适合快速验证「配置对不对、密钥通不通」。
+
+## 附：启用 GitHub Actions
+
+仓库里已经准备好 `.github/workflows/ci.yml`，但它需要推送方的 token 带有 `workflow`
+scope 才能提交（GitHub 对 OAuth App 的限制）。如果首次推送时被拦下，执行：
+
+```bash
+gh auth refresh -h github.com -s workflow
+git add .github/workflows/ci.yml
+git commit -m "工程：启用 CI"
+git push
+```
+
+CI 会跑：Python 3.10 / 3.12 两套后端测试、前端测试与构建、Docker 镜像构建并从
+容器里验证离线预览，以及公开投影的密钥/内网地址检查。
