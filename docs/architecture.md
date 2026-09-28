@@ -8,7 +8,7 @@ detector.server      只读看板 + 受限暂停接口
 detector.pricing_tick 倍率变化时重算优先级
 ```
 
-三者通过 `/var/lib/ai-drool-detector` 下的文件与 SQLite 通信，不共享内存、不共享凭据。web 进程在 systemd 层被 `InaccessiblePaths` 挡住，既看不到私有库，也看不到环境文件。
+三者通过 `/var/lib/drool-detector` 下的文件与 SQLite 通信，不共享内存、不共享凭据。web 进程在 systemd 层被 `InaccessiblePaths` 挡住，既看不到私有库，也看不到环境文件。
 
 ## 数据流
 
@@ -30,7 +30,7 @@ Sub2API 管理 API
 ## 目录布局
 
 ```
-/var/lib/ai-drool-detector/
+/var/lib/drool-detector/
 ├── private/
 │   ├── state.sqlite3     账号、任务、评分、熔断、成本账本
 │   └── worker.lock       进程互斥锁

@@ -6,7 +6,7 @@
 > (Codex, Claude Code, Cursor, Windsurf — any of them will do):
 >
 > ```
-> Deploy AI Drool Detector for me: https://raw.githubusercontent.com/noonwake-ai/ai-drool-detector/main/docs/install.en.md
+> Deploy AI Drool Detector for me: https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.en.md
 > ```
 
 ---
@@ -67,8 +67,8 @@ curl -s -o /dev/null -w '%{http_code}\n' <the Sub2API URL the user gave you>/hea
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/noonwake-ai/ai-drool-detector.git
-cd ai-drool-detector
+git clone https://github.com/noonwake-ai/drool-detector.git
+cd drool-detector
 ```
 
 ### 2. Let the user look at it for free (strongly recommended)
@@ -111,9 +111,9 @@ docker compose ps                       # all three services should be Up
 
 Follow [deploy.md](deploy.md). The essentials:
 
-- code under `/opt/ai-drool-detector/current` (a symlink to a versioned dir, so rollback is a symlink swap)
-- config and key under `/etc/ai-drool-detector/`, mode `0640`
-- state under `/var/lib/ai-drool-detector/`
+- code under `/opt/drool-detector/current` (a symlink to a versioned dir, so rollback is a symlink swap)
+- config and key under `/etc/drool-detector/`, mode `0640`
+- state under `/var/lib/drool-detector/`
 - separate system users for web and worker, so the web process cannot read the key
 
 ### 4. First read-only sync (spends nothing)

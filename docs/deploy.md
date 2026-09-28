@@ -25,20 +25,20 @@ curl -s -o /dev/null -w '%{http_code}\n' https://你的-sub2api-域名/health
 
 | 路径 | 放什么 | 权限 |
 |---|---|---|
-| `/opt/ai-drool-detector/current` | 代码（软链到版本目录） | root 可写 |
-| `/etc/ai-drool-detector/` | 配置与密钥 | 0600 / 0750 |
-| `/var/lib/ai-drool-detector/` | 运行数据 | worker 可写 |
+| `/opt/drool-detector/current` | 代码（软链到版本目录） | root 可写 |
+| `/etc/drool-detector/` | 配置与密钥 | 0600 / 0750 |
+| `/var/lib/drool-detector/` | 运行数据 | worker 可写 |
 | `/etc/systemd/system/` | 服务单元 | root |
 
 创建目录：
 
 ```bash
-sudo install -d -m 0755 /opt/ai-drool-detector/releases
-sudo install -d -m 0750 /etc/ai-drool-detector
-sudo install -d -m 0750 /var/lib/ai-drool-detector
-sudo install -d -m 0750 /var/lib/ai-drool-detector/controls
-sudo install -d -m 0700 /var/lib/ai-drool-detector/private
-sudo install -d -m 0750 /var/lib/ai-drool-detector/public
+sudo install -d -m 0755 /opt/drool-detector/releases
+sudo install -d -m 0750 /etc/drool-detector
+sudo install -d -m 0750 /var/lib/drool-detector
+sudo install -d -m 0750 /var/lib/drool-detector/controls
+sudo install -d -m 0700 /var/lib/drool-detector/private
+sudo install -d -m 0750 /var/lib/drool-detector/public
 ```
 
 ## 2. 专用系统账号
@@ -50,16 +50,16 @@ sudo groupadd --system drool-detector
 sudo useradd --system --gid drool-detector --no-create-home --shell /usr/sbin/nologin drool-worker
 sudo useradd --system --gid drool-detector --no-create-home --shell /usr/sbin/nologin drool-web
 
-sudo chown -R drool-worker:drool-detector /var/lib/ai-drool-detector
-sudo chmod 0750 /var/lib/ai-drool-detector
-sudo chmod 0700 /var/lib/ai-drool-detector/private
+sudo chown -R drool-worker:drool-detector /var/lib/drool-detector
+sudo chmod 0750 /var/lib/drool-detector
+sudo chmod 0700 /var/lib/drool-detector/private
 ```
 
 ## 3. 部署一个版本
 
 ```bash
 VERSION=20260929-v1
-RELEASE=/opt/ai-drool-detector/releases/$VERSION
+RELEASE=/opt/drool-detector/releases/$VERSION
 
 sudo install -d -m 0755 "$RELEASE"
 sudo rsync -a --delete \
@@ -68,21 +68,21 @@ sudo rsync -a --delete \
 
 cd "$RELEASE/web" && sudo npm ci && sudo npm run build
 
-sudo ln -sfn "$RELEASE" /opt/ai-drool-detector/current
+sudo ln -sfn "$RELEASE" /opt/drool-detector/current
 ```
 
 验证它能起来：
 
 ```bash
-cd /opt/ai-drool-detector/current
+cd /opt/drool-detector/current
 sudo -u drool-worker python3 -c "import detector.monitor; print('ok')"
 ```
 
 ## 4. 配置与密钥
 
 ```bash
-sudo install -m 0640 -o root -g drool-detector config.example.json /etc/ai-drool-detector/config.json
-sudoedit /etc/ai-drool-detector/config.json
+sudo install -m 0640 -o root -g drool-detector config.example.json /etc/drool-detector/config.json
+sudoedit /etc/drool-detector/config.json
 ```
 
 必须改的三处：
@@ -90,7 +90,7 @@ sudoedit /etc/ai-drool-detector/config.json
 ```jsonc
 {
   "base_url": "https://你的-sub2api-域名",
-  "data_dir": "/var/lib/ai-drool-detector",
+  "data_dir": "/var/lib/drool-detector",
   "identity_salt": "换成一串别人猜不到的随机字符"
 }
 ```
@@ -108,8 +108,8 @@ sudoedit /etc/ai-drool-detector/config.json
 再放密钥：
 
 ```bash
-sudo install -m 0600 deploy/drool-detector.env.example /etc/ai-drool-detector/drool-detector.env
-sudoedit /etc/ai-drool-detector/drool-detector.env
+sudo install -m 0600 deploy/drool-detector.env.example /etc/drool-detector/drool-detector.env
+sudoedit /etc/drool-detector/drool-detector.env
 ```
 
 填进去：
@@ -117,13 +117,13 @@ sudoedit /etc/ai-drool-detector/drool-detector.env
 ```ini
 SUB2API_ADMIN_KEY=真实密钥
 DROOL_BASE_URL=https://你的-sub2api-域名
-DROOL_DATA_DIR=/var/lib/ai-drool-detector
-DROOL_CONFIG=/etc/ai-drool-detector/config.json
+DROOL_DATA_DIR=/var/lib/drool-detector
+DROOL_CONFIG=/etc/drool-detector/config.json
 ```
 
 ```bash
-sudo chown root:drool-detector /etc/ai-drool-detector/drool-detector.env
-sudo chmod 0640 /etc/ai-drool-detector/drool-detector.env
+sudo chown root:drool-detector /etc/drool-detector/drool-detector.env
+sudo chmod 0640 /etc/drool-detector/drool-detector.env
 ```
 
 > 密钥只被 worker 和 pricing 读。web 单元的 `InaccessiblePaths` 已经把这个目录屏蔽掉了。
@@ -204,18 +204,18 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:4191/healthz
 
 ```bash
 VERSION=20261001-v2
-RELEASE=/opt/ai-drool-detector/releases/$VERSION
+RELEASE=/opt/drool-detector/releases/$VERSION
 sudo install -d -m 0755 "$RELEASE"
 sudo rsync -a --exclude node_modules --exclude .git --exclude data ./ "$RELEASE/"
 cd "$RELEASE/web" && sudo npm ci && sudo npm run build
-sudo ln -sfn "$RELEASE" /opt/ai-drool-detector/current
+sudo ln -sfn "$RELEASE" /opt/drool-detector/current
 sudo systemctl restart drool-detector-web.service
 ```
 
 回滚：
 
 ```bash
-sudo ln -sfn /opt/ai-drool-detector/releases/上一个版本 /opt/ai-drool-detector/current
+sudo ln -sfn /opt/drool-detector/releases/上一个版本 /opt/drool-detector/current
 sudo systemctl restart drool-detector-web.service
 ```
 
@@ -235,8 +235,8 @@ sudo systemctl restart drool-detector-web.service
 启动前的自检脚本：
 
 ```bash
-cd /opt/ai-drool-detector/current
-sudo -u drool-worker env $(cat /etc/ai-drool-detector/drool-detector.env | xargs) \
+cd /opt/drool-detector/current
+sudo -u drool-worker env $(cat /etc/drool-detector/drool-detector.env | xargs) \
   python3 -m detector.monitor --metadata-only
 ```
 

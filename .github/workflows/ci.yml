@@ -92,12 +92,12 @@ jobs:
           context: .
           push: false
           load: true
-          tags: ai-drool-detector:ci
+          tags: drool-detector:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Container serves the offline preview
         run: |
-          docker run -d --name drool-ci -p 4191:4191 ai-drool-detector:ci preview
+          docker run -d --name drool-ci -p 4191:4191 drool-detector:ci preview
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4191/api/state -o /tmp/state.json; then break; fi
             sleep 1
@@ -114,5 +114,5 @@ jobs:
           docker rm -f drool-ci
       - name: The web image must not contain a credential
         run: |
-          docker run --rm --entrypoint sh ai-drool-detector:ci -c \
+          docker run --rm --entrypoint sh drool-detector:ci -c \
             'test ! -e /etc/drool-detector/drool-detector.env && echo "no credential file baked in"'

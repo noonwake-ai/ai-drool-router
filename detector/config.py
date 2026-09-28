@@ -46,7 +46,7 @@ def protocol_for(platform):
     return IMPLIED_PROTOCOLS.get(platform, DEFAULT_PROTOCOL)
 
 DEFAULTS = {
-    'title': 'AI 流口水检测',
+    'title': '流口水降智检测与智能调度',
     'subtitle': '你的 AI 现在还在流口水吗？',
     'base_url': '',
     'data_dir': './data',
@@ -132,7 +132,7 @@ DEFAULTS = {
         # 'masked'  - keep the first 2 and last 2 characters, mask the middle
         'account_names': 'full',
     },
-    'identity_salt': 'ai-drool-detector',
+    'identity_salt': 'drool-detector',
 }
 
 
@@ -285,7 +285,7 @@ def public_account_name(account_id, name):
 
 
 def config_salt():
-    return str(CONFIG.get('identity_salt') or 'ai-drool-detector')
+    return str(CONFIG.get('identity_salt') or 'drool-detector')
 
 
 def config_bool(path, default=False):

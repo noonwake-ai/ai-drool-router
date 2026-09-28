@@ -1,18 +1,18 @@
 <div align="center">
 
-<h1>💧 AI Drool Detector</h1>
+<h1>💧 Drool Detector &amp; Router</h1>
 
 <strong>Is your AI still drooling?</strong>
 
-<p>Scheduled probes · powered by Sub2API · answers straight from upstream</p>
+<p>Score who got dumber · catch who is watering it down · route traffic to whoever still delivers</p>
 
 <p>
-  <a href="https://noonwake-ai.github.io/ai-drool-detector/"><strong>Live demo</strong></a> ·
+  <a href="https://noonwake-ai.github.io/drool-detector/"><strong>Live demo</strong></a> ·
   <a href="docs/install.en.md"><strong>Let an AI install it</strong></a> ·
   <a href="README.md">简体中文</a> ·
-  <a href="#what-it-solves">What it solves</a> ·
-  <a href="#deploy">Deploy</a> ·
-  <a href="#security-boundaries">Security</a>
+  <a href="#two-problems-that-keep-you-up-at-night">What it solves</a> ·
+  <a href="#how-it-mates-with-sub2api">Sub2API integration</a> ·
+  <a href="#deploy">Deploy</a>
 </p>
 
 <p>
@@ -24,14 +24,14 @@
 
 </div>
 
-![AI Drool Detector dashboard](docs/assets/dashboard-en.png)
+![Drool Detector & Router](docs/assets/dashboard-en.png)
 
 ---
 
 ## Paste this one line into your AI
 
 ```
-Deploy AI Drool Detector for me: https://raw.githubusercontent.com/noonwake-ai/ai-drool-detector/main/docs/install.en.md
+Deploy Drool Detector & Router for me: https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.en.md
 ```
 
 Hand it to whatever you have around — Codex, Claude Code, Cursor, Windsurf, anything that can run a command.
@@ -40,38 +40,193 @@ It reads the deployment guide, asks you exactly three things (**gateway URL, adm
 
 It will not write your key into a log, will not touch what was already on your box, and will not change your gateway's call priority behind your back.
 
-> Not ready to let anything near your server? Open the **[live demo](https://noonwake-ai.github.io/ai-drool-detector/)** first.
+> Not ready to let anything near your server? Open the **[live demo](https://noonwake-ai.github.io/drool-detector/)** first.
 > Nothing to install, no key, no cost — you just cannot press the buttons there.
 
 ---
 
-## What it solves
+## Two problems that keep you up at night
 
-You paid for the name "Claude Opus".
+**One: the official model got dumber on its own.**
 
-Something else may be answering at 3am.
+Fine last week, nonsense this week. You cannot tell whether it is your imagination
+or genuine degradation — and the vendor will never tell you. By the time you are sure,
+you have already written a week of code with it.
 
-Relays dilute. Vendors quietly degrade. An upstream swaps its backend while you sleep. The nasty part is that **none of it raises an alarm**: your client says 200, the answer reads fine, and it has just been getting dumber since some day you cannot name.
+**Two: the relay is watering it down.**
 
-By the time you notice, you have written a week of code with it.
+You paid for Claude. Something cheaper may be answering.
+A relay does not have to lie to you for long — just swap the backend while you are not
+looking. Your client **always says 200**, and the answer still reads fine.
 
-**AI Drool Detector stands at the door.**
+What these share: **you cannot find either one by feel.**
 
-Every 45 minutes it walks up to each of your models with the same question — the same candy puzzle, the same drawing task — and writes down who got it right, who was slow, and who is phoning it in.
+## What it actually does
 
-Suppliers that cannot answer sink down your Sub2API call priority. Suppliers that nail it rise.
+On a fixed schedule it walks up to every model you have configured with **the same candy
+puzzle** and **the same drawing task**.
 
-Four scores:
+The candy puzzle has a definite answer (21), so right and wrong are unambiguous.
 
-- **Intelligence** — one fixed candy question, passing needs two fresh independent correct answers
-- **Cost** — the supplier rate multiplier you enter; lower is cheaper
-- **Stability** — request success rate over the last few rounds
-- **Speed** — how long until the first body character, and end-to-end tokens per second
+The drawing task asks for an HTML animation of a big flamingo and a small flamingo on a
+tandem bicycle — **you can judge that with your own eyes**, no evaluation expertise needed.
 
-They combine into a composite score, and the score becomes call priority. Degraded suppliers sort last; the ones that still deliver sort first.
+Who answered, who missed, who crawled, who just errored out: all recorded, all drawn on a timeline.
+
+**Then it turns that ledger into Sub2API call priority: the good ones go first, the drooling ones go last.**
+
+## Three things it is actually good at
+
+### 1. See who is smart, at a glance
+
+No opaque benchmark numbers.
+
+Did it answer the candy question? Does the flamingo look like a flamingo?
+**You can tell instantly.** Put different models and different suppliers side by side and
+the ranking is obvious.
+
+### 2. Watch degradation and dilution over time
+
+Every supplier gets a 24-hour timeline.
+
+Passed today, missed tomorrow, passed again the day after — you can see **when it started
+going bad**, instead of one day realising something feels off.
+
+It works on official accounts too: OAuth subscriptions degrade just as happily.
+
+### 3. Route automatically, so every dollar lands
+
+Four factors combine into a score:
+
+| Factor | Weight | Measured from |
+|---|---|---|
+| Intelligence | 36% | how it does on the candy question |
+| Cost | 36% | the supplier rate multiplier you enter; lower is cheaper |
+| Stability | 18% | request success rate over recent rounds |
+| Speed | 10% | time to first token, and tokens per second |
+
+The composite score becomes a **Sub2API call priority**.
+
+Whoever is fast, stable, cheap and genuinely capable sorts to the top — computed from
+**measured results**, not from marketing claims. Together with Sub2API's own priority and
+sticky weighting, new traffic goes to whoever is strongest right now.
+
+**You do not tune it by hand, and you do not gamble on which supplier is good today.**
 
 > Stated plainly: this is a **targeted reasoning probe**, not a full model evaluation.
-> It answers exactly one question — is this supplier still delivering the level it should?
+> It answers one very specific question — is this supplier still delivering the level it should?
+
+---
+
+## How it mates with Sub2API
+
+**Straight up: this is not an optional dependency. It is a deep coupling.**
+
+The project keeps no account pool of its own and stores no upstream credentials. It treats
+Sub2API as **the one and only account and scheduling authority**. Put differently:
+**without Sub2API it does not even know who to ask.**
+
+One full loop looks like this:
+
+```
+                     (1) read accounts, groups, rates
+                    ┌────────────────────────────┐
+                    │   Sub2API (your gateway)    │
+                    │   accounts · groups ·       │
+                    │   priority · rate multiplier│
+                    └──────┬──────────────▲────────┘
+                           │              │
+                     (2) get creds   (5) write priority back
+                           │              │
+                           ▼              │
+   ┌───────────────────────────────────────────────────────┐
+   │  Drool Detector & Router                               │
+   │                                                        │
+   │  (3) call upstream directly with the account's own key │
+   │      so the answer is the real one, not a gateway-     │
+   │      routed (possibly diluted) copy                     │
+   │                                                        │
+   │  (4) grade the candy puzzle + render the artwork,       │
+   │      then weight the four factors into one score         │
+   └───────────────────────┬───────────────────────────────┘
+                           │
+                           ▼
+                   public board (read-only, bilingual)
+```
+
+Exactly what it needs from Sub2API, and what breaks without it:
+
+| What it needs | What for | Without it |
+|---|---|---|
+| **Admin API key** | read accounts and model config; write scores back to priority | cannot install — this is the only credential entry point |
+| **Groups** | define which accounts get probed | you would probe everything, including the image-generation group you do not want |
+| **Accounts + upstream credentials** | call upstream with that account's own key and proxy | you would only measure gateway-routed second-hand answers |
+| **Priority field** | receive the score | you can look, but nothing routes |
+| **Sticky weighting / advanced scheduling** | make new traffic prefer the top-scoring supplier | scores still compute, but traffic will not follow them |
+
+### Why it must call upstream directly
+
+This is the single most important design decision in the project.
+
+If a probe went through the Sub2API group gateway, *which* backend answered would be decided
+by whatever routing was in force at that moment. You would be measuring a **random** supplier,
+not the one you meant to measure.
+
+So it bypasses the gateway entirely: it takes the account's own credentials and proxy and
+calls **the upstream configured on that account**.
+
+That is what makes the result the **real** behaviour of that supplier.
+
+> The trade-off: your host must be able to reach those upstreams directly.
+> A proxy configured inside Sub2API is for Sub2API — it does not follow automatically unless
+> it is stored on the account and readable.
+
+### Why groups matter
+
+A gateway normally mixes several kinds of account:
+
+- official OAuth subscriptions (quota-limited)
+- third-party relays (billed by a rate multiplier)
+- accounts dedicated to image generation
+
+**You usually only want to probe a subset.** Groups draw that line:
+
+```jsonc
+"platforms": {
+  "openai": {
+    "group_ids": [4],                   // only probe group 4
+    "exclude_names": ["生图", "image"]   // never touch anything matching these names
+  }
+}
+```
+
+An empty `group_ids` means "every account on this platform". Name exclusions always win —
+image-generation accounts never take part in call scheduling.
+
+### How a score becomes a priority
+
+```
+intelligence 36% ┐
+cost         36% ├─► composite 0–100 ─► priority = 100 + round((100 − composite) × 1000)
+stability    18% │
+speed        10% ┘
+```
+
+In Sub2API, **smaller numbers are called first**. The highest composite therefore gets the
+smallest priority number and is picked first.
+
+Once `routing.write_priority` is on, this syncs automatically after every round.
+
+### By default it does not touch your gateway
+
+`write_priority` and `write_callable` both **default to `false`**.
+
+Install it, leave it running: it scores and displays, and **not one byte is written to your
+gateway**. Watch a few rounds, confirm the scores match your expectations, and only then turn
+the switches on.
+
+Those switches are also **owned by the config file** — neither a CLI flag nor a systemd unit
+can override them.
 
 ## Highlights
 
@@ -132,8 +287,8 @@ Three processes, none sharing credentials:
 ### 2. Install
 
 ```bash
-git clone https://github.com/noonwake-ai/ai-drool-detector.git
-cd ai-drool-detector
+git clone https://github.com/noonwake-ai/drool-detector.git
+cd drool-detector
 
 python3 -m pip install -r detector/requirements.txt
 
@@ -262,15 +417,15 @@ The image runs three services: `web` (read-only board), `worker` (scheduled prob
 Ready-made systemd units live in `deploy/`.
 
 ```bash
-sudo install -d -m 0755 /opt/ai-drool-detector
-sudo install -d -m 0750 /var/lib/ai-drool-detector
-sudo install -d -m 0750 /etc/ai-drool-detector
+sudo install -d -m 0755 /opt/drool-detector
+sudo install -d -m 0750 /var/lib/drool-detector
+sudo install -d -m 0750 /etc/drool-detector
 
-# Code under /opt/ai-drool-detector/current (symlink to a versioned dir for rollback)
-# Config at /etc/ai-drool-detector/config.json
+# Code under /opt/drool-detector/current (symlink to a versioned dir for rollback)
+# Config at /etc/drool-detector/config.json
 
-sudo install -m 0600 deploy/drool-detector.env.example /etc/ai-drool-detector/drool-detector.env
-sudoedit /etc/ai-drool-detector/drool-detector.env   # put the real key here
+sudo install -m 0600 deploy/drool-detector.env.example /etc/drool-detector/drool-detector.env
+sudoedit /etc/drool-detector/drool-detector.env   # put the real key here
 
 sudo install -m 0644 deploy/systemd/*.service /etc/systemd/system/
 sudo install -m 0644 deploy/systemd/*.timer   /etc/systemd/system/

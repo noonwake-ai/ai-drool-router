@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=oneshot
 User=drool-worker
 Group=drool-detector
-WorkingDirectory=/opt/ai-drool-detector/current
-EnvironmentFile=/etc/ai-drool-detector/drool-detector.env
+WorkingDirectory=/opt/drool-detector/current
+EnvironmentFile=/etc/drool-detector/drool-detector.env
 # Whether the worker may write Sub2API is decided by config.json:
 # routing.write_priority and routing.write_callable. Both default to false,
 # so a stock deploy scores suppliers without touching your gateway.
@@ -30,5 +30,5 @@ RestrictSUIDSGID=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 CapabilityBoundingSet=
 # The worker needs the private state database; the web unit never sees it.
-ReadWritePaths=/var/lib/ai-drool-detector
+ReadWritePaths=/var/lib/drool-detector
 UMask=0027

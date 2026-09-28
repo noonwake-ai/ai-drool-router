@@ -6,10 +6,10 @@ After=network.target
 Type=simple
 User=drool-web
 Group=drool-detector
-WorkingDirectory=/opt/ai-drool-detector/current
-EnvironmentFile=/etc/ai-drool-detector/drool-detector.env
+WorkingDirectory=/opt/drool-detector/current
+EnvironmentFile=/etc/drool-detector/drool-detector.env
 # Required for the dashboard itself; the Sub2API key is loaded only by the worker.
-Environment=DROOL_DATA_DIR=/var/lib/ai-drool-detector
+Environment=DROOL_DATA_DIR=/var/lib/drool-detector
 ExecStart=/usr/bin/python3 -m detector.server
 Restart=on-failure
 RestartSec=5
@@ -27,8 +27,8 @@ RestrictSUIDSGID=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 CapabilityBoundingSet=
 # The dashboard can read the public projection and write control files, nothing else.
-InaccessiblePaths=/etc/ai-drool-detector /var/lib/ai-drool-detector/private
-ReadWritePaths=/var/lib/ai-drool-detector/controls
+InaccessiblePaths=/etc/drool-detector /var/lib/drool-detector/private
+ReadWritePaths=/var/lib/drool-detector/controls
 UMask=0027
 
 [Install]

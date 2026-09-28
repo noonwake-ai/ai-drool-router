@@ -185,7 +185,7 @@ def _models(platform, amount, unpriced=0):
 def state():
     now = ANCHOR
     return {
-        'title': 'AI 流口水检测', 'model': 'gpt-6-astra', 'effort': 'medium', 'expected_answer': 21,
+        'title': '流口水降智检测与智能调度', 'model': 'gpt-6-astra', 'effort': 'medium', 'expected_answer': 21,
         'server_time': now, 'generated_at': now, 'next_run_at': now + 1260,
         'history_hours': 24, 'interval_seconds': 2700, 'max_retries': 2, 'refresh_seconds': 30,
         'schedule': {'timezone': 'Asia/Shanghai', 'regular_seconds': 2700, 'quiet_seconds': 5400,

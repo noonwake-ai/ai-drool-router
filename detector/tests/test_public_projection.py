@@ -78,7 +78,7 @@ class LeakDetectionTests(unittest.TestCase):
         self.assertCaught(
             lambda p: p['accounts'][0].update({'note': 'https://api.moonshot.cn/v1'}),
             'upstream host')
-        for allowed in ('https://github.com/noonwake-ai/ai-drool-detector',
+        for allowed in ('https://github.com/noonwake-ai/drool-detector',
                         'https://noonwake.ai/', 'https://codex-watch.noonwake.ai/'):
             with self.subTest(allowed=allowed):
                 payload = baseline()

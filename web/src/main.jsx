@@ -13,8 +13,8 @@ import PriorityView from './priority-view.jsx';
 import DrawingSignals from './drawing-signals.jsx';
 import {schedulerWarning} from './scheduler-warning.js';
 
-const FALLBACK_TITLE = 'AI 流口水检测';
-const REPO_URL = 'https://github.com/noonwake-ai/ai-drool-detector';
+const FALLBACK_TITLE = '流口水降智检测与智能调度';
+const REPO_URL = 'https://github.com/noonwake-ai/drool-detector';
 const statusText = status => tr('status.' + (status || 'empty'));
 const locale = () => document.documentElement.lang === 'en' ? 'en-US' : 'zh-CN';
 const date = (value, options={}) => new Date(value*1000).toLocaleString(locale(),{timeZone:'Asia/Shanghai',hour12:false,...options});

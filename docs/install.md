@@ -5,7 +5,7 @@
 > 如果你是人，把下面这句话复制给你手边的 AI（Codex、Claude Code、Cursor、Windsurf 都行）：
 >
 > ```
-> 帮我部署 AI 流口水检测：https://raw.githubusercontent.com/noonwake-ai/ai-drool-detector/main/docs/install.md
+> 帮我部署 AI 流口水检测：https://raw.githubusercontent.com/noonwake-ai/drool-detector/main/docs/install.md
 > ```
 
 ---
@@ -59,8 +59,8 @@ curl -s -o /dev/null -w '%{http_code}\n' <用户给的 Sub2API 地址>/health
 ### 1. 拿代码
 
 ```bash
-git clone https://github.com/noonwake-ai/ai-drool-detector.git
-cd ai-drool-detector
+git clone https://github.com/noonwake-ai/drool-detector.git
+cd drool-detector
 ```
 
 ### 2. 先让用户免费看一眼（强烈建议）
@@ -102,9 +102,9 @@ docker compose ps                       # 三个服务都应该是 Up
 
 按 [deploy.md](deploy.md) 走。关键点：
 
-- 代码放 `/opt/ai-drool-detector/current`（软链到版本目录，方便回滚）
-- 配置和密钥放 `/etc/ai-drool-detector/`，权限 `0640`
-- 数据放 `/var/lib/ai-drool-detector/`
+- 代码放 `/opt/drool-detector/current`（软链到版本目录，方便回滚）
+- 配置和密钥放 `/etc/drool-detector/`，权限 `0640`
+- 数据放 `/var/lib/drool-detector/`
 - Web 进程和 worker 用不同系统账号，web 读不到密钥
 
 ### 4. 第一次只读同步（不花 token）

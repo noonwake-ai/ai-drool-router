@@ -1,8 +1,8 @@
 {
-  "title": "AI 流口水检测",
+  "title": "流口水降智检测与智能调度",
   "subtitle": "你的 AI 现在还在流口水吗？",
   "base_url": "https://your-sub2api-host",
-  "data_dir": "/var/lib/ai-drool-detector",
+  "data_dir": "/var/lib/drool-detector",
   "web": {
     "host": "127.0.0.1",
     "port": 4191,

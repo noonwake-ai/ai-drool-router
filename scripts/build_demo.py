@@ -76,6 +76,9 @@ def stage(dist):
 
     (DEMO / 'api' / 'state').write_text((public / 'state.json').read_text())
     for run in public.glob('*.json'):
+        if run.name == 'state.json':
+            # `public/` also holds state.json; it is the board state, not a run.
+            continue
         (api_runs / run.stem).write_text(run.read_text())
     for art in public.glob('*.html'):
         (artifacts / art.name).write_text(art.read_text())
