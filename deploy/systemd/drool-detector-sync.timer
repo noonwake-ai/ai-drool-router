@@ -1,0 +1,11 @@
+[Unit]
+Description=AI Drool Detector daily account metadata refresh
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+AccuracySec=1m
+Unit=drool-detector-sync.service
+
+[Install]
+WantedBy=timers.target

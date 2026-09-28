@@ -1,0 +1,21 @@
+# Secrets and local configuration
+config.json
+.env
+*.env
+!deploy/*.env.example
+credentials/
+*.cred
+
+# Runtime state and generated output
+data/
+dist/
+detector/dist/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# Editors
+.idea/
+.vscode/

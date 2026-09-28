@@ -1,0 +1,307 @@
+<div align="center">
+
+<h1>💧 AI 流口水检测</h1>
+
+<strong>你的 AI 现在还在流口水吗？</strong>
+
+<p>定时探针 · 依托 Sub2API · 直连上游取真实答案</p>
+
+<p>
+  <a href="README.en.md">English</a> ·
+  <a href="#它解决什么问题">它解决什么问题</a> ·
+  <a href="#五分钟跑起来">五分钟跑起来</a> ·
+  <a href="#部署">部署</a> ·
+  <a href="#安全边界">安全边界</a>
+</p>
+
+<p>
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.9%2B-green.svg?style=for-the-badge&logo=python&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-19-58c4dc.svg?style=for-the-badge&logo=react&logoColor=white">
+  <img alt="Sub2API" src="https://img.shields.io/badge/Sub2API-required-d5b769.svg?style=for-the-badge">
+</p>
+
+</div>
+
+![AI 流口水检测看板](docs/assets/dashboard-zh.png)
+
+---
+
+## 它解决什么问题
+
+你花钱买了模型能力，但拿到手的不一定是那个模型。
+
+中转站的纯度不够、官方悄悄降智、某个上游半夜换了后端——这些从外面全都看不出来。你的客户端只会告诉你「请求成功」，然后给你一段看起来还行、实际上明显变笨的回答。
+
+**AI 流口水检测**做的事情很直接：按固定节奏，用同一道题去敲你 Sub2API 里配置的每一家模型，把结果摊在一块看板上，然后**把测出来的分数写回 Sub2API 的调用优先级**。
+
+- **智力**：固定糖果题，连续两次全新独立请求都答对才算通过
+- **成本**：你自己填的供货倍率，越低越便宜
+- **稳定性**：最近几轮评测的请求成功率
+- **速度**：首正文字符延迟 + 端到端吞吐
+
+四项按权重算出综合分，综合分换算成调用优先级。降智的供应商会被排到后面，真实力在线的排到前面。
+
+> 这是一个**定向推理探针**，不是完整的模型评测。它只回答一个问题：这家供应商现在是否还在稳定地输出它应有的水平。
+
+## 核心特性
+
+| | |
+|---|---|
+| 🎯 **固定题目，结果可比** | 每轮同一道糖果题，同一道 SVG 动画题。跨时间、跨供应商直接对比 |
+| 🔁 **两次独立请求** | 连续两次全新请求都答对才通过。第一次明确答错立刻结束，不浪费第二次 token |
+| 🧠 **预算截断 vs 上游故障** | 上游一直在返回数据但预算用完，单独记为「预算截断」，不算上游无响应、不触发熔断 |
+| 🚦 **真实熔断** | 只有连续两次真实上游报错才停止调用；本地配置错误、进程中断、答案无法核验都不会误伤 |
+| ⚡ **综合评分** | 智力 36% / 成本 36% / 稳定性 18% / 速度 10%，权重全部可配 |
+| 💰 **成本账本** | 逐请求记录用量与当时价格快照，近 24 小时与近 30 天分平台汇总 |
+| 🌏 **中英双语** | 页面默认简体中文，一键切英文；`?lang=en` 直链也可 |
+| 🔒 **凭据不出后端** | 浏览器永远拿不到任何上游密钥，看板只有脱敏后的公开投影 |
+| 🧩 **任何模型** | 模型、思考等级、分组范围全部写在配置里。支持市面上的模型，按需增删 |
+
+## 它是怎么工作的
+
+```
+                    ┌──────────────────────────────┐
+                    │   Sub2API（你的网关）          │
+                    │   账号 · 分组 · 优先级 · 倍率   │
+                    └───────────┬──────────────────┘
+                                │ 管理 API（只读 + 极窄写）
+                                ▼
+   ┌────────────────────────────────────────────────────┐
+   │  AI 流口水检测 worker                               │
+   │  1. 拉取账号清单，按配置挑出要检测的模型             │
+   │  2. 用该账号自己的上游凭据直连，绕过分组网关          │
+   │  3. 跑糖果题 + SVG 动画题，记录智力/速度/稳定性       │
+   │  4. 算综合分 → 回写调用优先级（可选）                │
+   └───────────┬────────────────────────┬───────────────┘
+               │ 只写公开投影            │ 极窄写
+               ▼                        ▼
+   ┌────────────────────┐    ┌──────────────────────┐
+   │  公开看板（只读）    │    │  Sub2API 调用优先级    │
+   │  中英双语 · 无凭据   │    │  熔断 / 恢复          │
+   └────────────────────┘    └──────────────────────┘
+```
+
+三个独立进程，互不共享凭据：
+
+| 进程 | 职责 | 能读到什么 |
+|---|---|---|
+| `detector.monitor` | 定时检测、评分、按需回写 | Sub2API 管理员密钥（仅此进程） |
+| `detector.server` | 只读看板 + 受限暂停接口 | 只有公开数据目录，**看不到私有库和凭据** |
+| `detector.pricing_tick` | 倍率变化时重算优先级 | Sub2API 管理员密钥（仅此进程） |
+
+## 五分钟跑起来
+
+### 1. 你需要准备什么
+
+- 一个已经跑起来的 **Sub2API**（这是前提，检测靠它管理账号和路由）
+- 一个能跑 Python 3.9+ 和 Node 20+ 的 Linux 小机器（1 核 1G 就够）
+- 一个 **Sub2API 管理员 API Key**
+
+> 密钥怎么拿：登录你的 Sub2API 后台，在管理员/API Key 相关设置里生成一个。它只给这个检测项目用，别复用你日常的 key。
+
+### 2. 装依赖
+
+```bash
+git clone https://github.com/noonwake-ai/ai-drool-detector.git
+cd ai-drool-detector
+
+python3 -m pip install -r detector/requirements.txt
+
+cd web && npm ci && npm run build && cd ..
+```
+
+### 3. 写配置
+
+复制一份开始改：
+
+```bash
+cp config.example.json config.json
+```
+
+最少要改这三个地方：
+
+```jsonc
+{
+  "base_url": "https://你的-sub2api-域名",   // 你的网关地址
+  "data_dir": "./data",                     // 运行数据放哪
+  "platforms": {
+    "openai": {
+      "enabled": true,
+      "model": "gpt-6-astra",               // 你想测哪个模型
+      "effort": "medium",                   // 思考等级
+      "group_ids": [],                      // 留空＝该平台全部账号
+      "exclude_names": ["生图", "image"]     // 名字命中就跳过
+    }
+  }
+}
+```
+
+**分组怎么填**：`group_ids` / `group_names` 留空表示「这个平台的所有账号都测」。填上就只测属于这些分组的账号。`exclude_names` 永远优先——比如你不希望生图账号参与，就把关键词写进去。
+
+**模型怎么填**：用 Sub2API 里真实存在的模型名。想加新供应商就照着加一段：
+
+```jsonc
+"moonshot": {
+  "enabled": true,
+  "label": "Kimi",
+  "model": "kimi-k3",
+  "effort": "max"
+}
+```
+
+### 4. 先在不花钱的模式下看一眼
+
+```bash
+python3 scripts/dev_preview.py
+# 打开 http://127.0.0.1:4191/
+```
+
+这个预览用的是本地造的假数据，**不会连你的网关、不花一分钱、不需要任何密钥**。先确认页面长得对，再往下走。
+
+### 5. 真实跑一轮
+
+```bash
+export SUB2API_ADMIN_KEY='你的管理员密钥'
+
+# 只同步账号清单，不发起任何模型请求（推荐第一次这样做）
+python3 -m detector.monitor --metadata-only
+
+# 真正跑一轮检测
+python3 -m detector.monitor --source initial
+```
+
+跑完再开一次看板就能看到真实结果：
+
+```bash
+python3 -m detector.server --dist web/dist --public ./data/public
+```
+
+> 第一次真跑会消耗 token。想先小范围验证，就把 `platforms` 里只留一个平台、或者用 `group_ids` 圈一两个账号。
+
+## 部署
+
+仓库里带了一套现成的 systemd 单元，直接抄就能用。
+
+```bash
+sudo install -d -m 0755 /opt/ai-drool-detector
+sudo install -d -m 0750 /var/lib/ai-drool-detector
+sudo install -d -m 0750 /etc/ai-drool-detector
+
+# 代码放到 /opt/ai-drool-detector/current（软链到具体版本目录，方便回滚）
+# 配置放到 /etc/ai-drool-detector/config.json
+
+sudo install -m 0600 deploy/drool-detector.env.example /etc/ai-drool-detector/drool-detector.env
+sudoedit /etc/ai-drool-detector/drool-detector.env   # 填真实密钥
+
+sudo install -m 0644 deploy/systemd/*.service /etc/systemd/system/
+sudo install -m 0644 deploy/systemd/*.timer   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now drool-detector-web.service
+sudo systemctl enable --now drool-detector-worker.timer drool-detector-sync.timer drool-detector-pricing.timer
+```
+
+四个定时器的分工：
+
+| 单元 | 节奏 | 干什么 |
+|---|---|---|
+| `drool-detector-worker.timer` | 每 15 分钟敲一次 | 由 worker 自己判断当前是否到了检测时点 |
+| `drool-detector-sync.timer` | 每天 04:00 | 同步账号清单，**不发起模型请求** |
+| `drool-detector-pricing.timer` | 每分钟 | 倍率有变化时重算优先级 |
+| `drool-detector-web.service` | 常驻 | 只读看板 |
+
+前面套一层反向代理（Caddy / Nginx），示例见 `deploy/Caddyfile.fragment`。
+
+**回滚**：`current` 是一个软链。把它指回上一个版本目录、重启 `drool-detector-web` 就行。数据库和控制文件都不用动。
+
+## 配置项速查
+
+### 节奏
+
+```jsonc
+"schedule": {
+  "timezone": "Asia/Shanghai",
+  "regular_minutes": 45,     // 常规间隔
+  "quiet_start": "04:00",    // 凌晨降频开始
+  "quiet_end": "08:00",      // 凌晨降频结束
+  "quiet_minutes": 90,       // 凌晨间隔
+  "history_hours": 24        // 看板保留多久
+}
+```
+
+### 超时预算
+
+```jsonc
+"budgets": {
+  "default_seconds": 900,          // 默认整次生成预算
+  "idle_seconds": 120,             // 多久没有数据算断流
+  "gemini_high_idle_seconds": 300, // 高思考等级放宽
+  "drawing_platform_seconds": {"grok": 1500},
+  "max_attempts": 3
+}
+```
+
+高思考等级的模型在动画题上可能要跑十几分钟才吐出第一个正文字符。**别把 `default_seconds` 调小**——预算用完会被记成「预算截断」，那道题就不算通过。给慢平台单独在 `drawing_platform_seconds` 里放宽。
+
+### 评分权重
+
+```jsonc
+"routing": {
+  "weights": {"intelligence": 0.36, "cost": 0.36, "stability": 0.18, "speed": 0.10},
+  "rounds": 3,
+  "write_priority": false,   // 默认 false：只算分，不动你的网关
+  "write_callable": false    // 默认 false：不做熔断/恢复写操作
+}
+```
+
+> **默认是「只看不改」**。确认分数符合你的预期之后，再把 `write_priority` 打开，让它真的去调 Sub2API 的优先级。
+
+## 安全边界
+
+这部分请认真读，它决定了你能放心把它放在公网上。
+
+| 边界 | 做法 |
+|---|---|
+| **密钥不落前端** | 浏览器只拿得到一个脱敏后的公开投影：账号名、平台、模型、状态、分数。没有 token、没有 base_url、没有邮箱 |
+| **密钥不落 Git** | `config.json`、`.env`、`credentials/`、`data/` 全在 `.gitignore` 里 |
+| **密钥不进日志** | 所有上游错误在写库前都会跑一遍脱敏，密钥、令牌、邮箱、上游地址全部替换 |
+| **进程隔离** | Web 进程读不到私有库和凭据目录，只能写控制文件 |
+| **模型输出当不可信** | 模型生成的 HTML 放在 `sandbox allow-scripts` 的 iframe 里跑，网络、表单、上级框架全部禁止 |
+| **写操作极窄** | 对 Sub2API 只有两个动作：改优先级、改可调用状态。都有回读校验，读回不一致就报错 |
+
+**匿名暂停接口默认关闭**。`web.public_controls` 打开后，任何能访问页面的人都可以暂停/恢复某个账号的检测。内网用没关系，公网部署请想清楚——或者干脆让它只读。
+
+## 常见问题
+
+**必须要有 Sub2API 吗？**
+是。这台检测器不自己维护账号池，账号从 Sub2API 读、凭据从 Sub2API 读、路由结果写回 Sub2API。没有网关就从「从哪里拿账号」到「谁来兜底」都断了。
+
+**会不会把我的账号封了？**
+它用你这个账号自己的凭据，发起的是正常的模型请求，只是节奏由你控制。真要说风险，就是请求量——默认每个平台每个账号一轮两道题。嫌多就把 `regular_minutes` 调大，或者只圈几个账号做样本。
+
+**第一次答错为什么要直接结束？**
+因为确认答错已经是明确结果了，再问一遍只是多烧一次 token。只有**请求失败**才值得重试——那是没拿到答案，不是答错。
+
+**为什么有时候显示「预算截断」而不是答错？**
+说明上游一直在返回数据（首 token 很早就到了），但在你设的生成预算内没能完整结束。这是你的预算问题，不是上游故障，所以它既不触发熔断，也不该被当成答错。
+
+**页面打开是空的？**
+先确认跑过一次 `--metadata-only` 或真实检测，`data/public/state.json` 存在。看板读的就是这个文件。
+
+**改完配置要重启吗？**
+worker 每次启动都会重新读 `config.json`，所以下一轮生效。Web 进程的端口/路径同理，需要重启服务。
+
+## 参与进来
+
+Issue 和 PR 都欢迎。提交前请跑：
+
+```bash
+python3 -m unittest discover -s detector/tests -t . -p 'test_*.py'
+cd web && node --test src/*.test.js && npm run build
+```
+
+新增功能请带上对应测试。涉及 Sub2API 写操作的改动，请同时说明回读校验策略。
+
+## 许可
+
+[MIT](LICENSE) © NoonWake.AI

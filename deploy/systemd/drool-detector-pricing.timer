@@ -1,0 +1,11 @@
+[Unit]
+Description=AI Drool Detector rate check every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=false
+AccuracySec=10s
+Unit=drool-detector-pricing.service
+
+[Install]
+WantedBy=timers.target

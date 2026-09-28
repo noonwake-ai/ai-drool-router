@@ -1,0 +1,76 @@
+{
+  "title": "AI 流口水检测",
+  "subtitle": "你的 AI 现在还在流口水吗？",
+  "base_url": "https://your-sub2api-host",
+  "data_dir": "/var/lib/ai-drool-detector",
+  "web": {
+    "host": "127.0.0.1",
+    "port": 4191,
+    "public_controls": false
+  },
+  "schedule": {
+    "timezone": "Asia/Shanghai",
+    "regular_minutes": 45,
+    "quiet_start": "04:00",
+    "quiet_end": "08:00",
+    "quiet_minutes": 90,
+    "history_hours": 24
+  },
+  "platforms": {
+    "openai": {
+      "enabled": true,
+      "label": "GPT",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "group_ids": [],
+      "group_names": [],
+      "exclude_names": ["生图", "image"]
+    },
+    "anthropic": {
+      "enabled": true,
+      "label": "Claude",
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "group_ids": [],
+      "group_names": [],
+      "exclude_names": []
+    },
+    "gemini": {
+      "enabled": true,
+      "label": "Gemini",
+      "model": "gemini-3.8-flash",
+      "effort": "high",
+      "group_ids": [],
+      "group_names": [],
+      "exclude_names": []
+    },
+    "grok": {
+      "enabled": true,
+      "label": "Grok",
+      "model": "grok-4.7",
+      "effort": "high",
+      "group_ids": [],
+      "group_names": [],
+      "exclude_names": []
+    }
+  },
+  "budgets": {
+    "default_seconds": 900,
+    "idle_seconds": 120,
+    "gemini_high_idle_seconds": 300,
+    "drawing_platform_seconds": {"grok": 1500},
+    "max_attempts": 3
+  },
+  "routing": {
+    "weights": {"intelligence": 0.36, "cost": 0.36, "stability": 0.18, "speed": 0.10},
+    "rounds": 3,
+    "stability_rounds": 3,
+    "priority_min": 100,
+    "priority_max": 100100,
+    "write_priority": false,
+    "write_callable": false,
+    "stability_endpoint": ""
+  },
+  "retention": {"artifacts_hours": 24, "cost_days": 30},
+  "identity_salt": "change-this-to-a-private-random-string"
+}

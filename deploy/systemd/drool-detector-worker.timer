@@ -1,0 +1,14 @@
+[Unit]
+Description=AI Drool Detector schedule tick (regular cadence plus the quiet window)
+
+[Timer]
+# Ticks four times an hour; the worker itself decides whether the current slot
+# is due, so the cadence stays data-driven instead of living in the timer.
+OnActiveSec=10s
+OnCalendar=*-*-* *:00/15:00
+Persistent=true
+AccuracySec=1s
+Unit=drool-detector-worker.service
+
+[Install]
+WantedBy=timers.target

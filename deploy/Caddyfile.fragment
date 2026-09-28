@@ -1,0 +1,6 @@
+# Minimal reverse proxy for the public dashboard. Replace the hostname with your
+# own domain, then `caddy validate` before reloading.
+drool.example.com {
+    encode gzip zstd
+    reverse_proxy 127.0.0.1:4191
+}

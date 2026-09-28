@@ -1,0 +1,27 @@
+[Unit]
+Description=AI Drool Detector supplier rate refresh and priority recompute
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=drool-worker
+Group=drool-detector
+WorkingDirectory=/opt/ai-drool-detector/current
+EnvironmentFile=/etc/ai-drool-detector/drool-detector.env
+ExecStart=/usr/bin/python3 -m detector.pricing_tick
+TimeoutStartSec=300
+MemoryMax=256M
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/ai-drool-detector
+UMask=0027

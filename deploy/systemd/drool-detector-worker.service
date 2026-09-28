@@ -1,0 +1,31 @@
+[Unit]
+Description=AI Drool Detector scheduled probes (Sub2API-backed)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=drool-worker
+Group=drool-detector
+WorkingDirectory=/opt/ai-drool-detector/current
+EnvironmentFile=/etc/ai-drool-detector/drool-detector.env
+ExecStart=/usr/bin/python3 -m detector.monitor --source timer --enable-quality-routing --enable-priority-routing
+TimeoutStartSec=3300
+MemoryMax=512M
+CPUQuota=75%
+TasksMax=48
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+# The worker needs the private state database; the web unit never sees it.
+ReadWritePaths=/var/lib/ai-drool-detector
+UMask=0027
