@@ -217,7 +217,8 @@ def state():
                        'anthropic': {'model': 'claude-opus-5-5', 'effort': 'medium'},
                        'gemini': {'model': 'gemini-3.8-flash', 'effort': 'high'},
                        'grok': {'model': 'grok-4.7', 'effort': 'high'}},
-        'routing_writes': {'priority': True, 'callable': False},
+        # A demo must never look like it is authorised to write to a gateway.
+        'routing_writes': {'priority': False, 'callable': False},
         'controls_enabled': True,
         'method': 'HTTP 直连适配器（不是 CLI 子进程）。读取 Sub2API 账户配置，使用对应账户的上游凭据和代理独立请求，不经过分组网关或负载均衡。',
     }
